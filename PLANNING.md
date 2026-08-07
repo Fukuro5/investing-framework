@@ -50,12 +50,15 @@ PositionSnapshot  id, accountId, instrumentId, importBatchId, asOfDate,
 PriceSnapshot     instrumentId, date, price, fetchedAt              (market-data cache)
 MetricValue       instrumentId, metricKey, value, asOfDate, source ('api'|'manual'), fetchedAt
                   (fcf, roic, peRatio, dividendYield, convexity, ... — one catalog of metrics,
-                  shared across frameworks; a manual-source row for a given instrument+metricKey
-                  always wins over an api-source row when both exist)
+                  shared across frameworks; manual doesn't automatically win — when both a manual
+                  and an api row exist for the same instrument+metricKey, whichever has the more
+                  recent asOfDate/fetchedAt wins, regardless of source — see §5)
 
 Framework         id, name, description, isActive
 FrameworkGroup    id, frameworkId, name, targetAllocationMin, targetAllocationMax, priority
-                  ("Core" @ 65–75%, "Convexity" @ ..., priority breaks ties when auto-classifying)
+                  ("Core" @ 65–75%, "Convexity" @ ..., priority breaks ties when auto-classifying;
+                  a framework's groups' allocation bands must sum to 100%, enforced in the
+                  Phase 4 CRUD UI)
 GroupRule         id, groupId, metricKey, operator, threshold,
                   role ('classification'|'signal'), isActive
                   (classification rules decide auto-membership; signal rules — same metric
@@ -69,11 +72,14 @@ InstrumentGroupAssignment  id, frameworkId, groupId, instrumentId, source ('manu
 
 Signal            id, frameworkId, instrumentId, groupRuleId, evaluatedAt,
                   status (ok/warn/breach), message
+                  (insert-only — each evaluation run appends new rows rather than upserting, so
+                  you keep a history of how a position's signal changed over time; the dashboard
+                  reads the latest row per (frameworkId, instrumentId, groupRuleId))
 ```
 
 The dashboard's "current positions" prefer the latest `PositionSnapshot` per `(accountId, instrumentId)` when one exists — brokers report this directly and it's authoritative as of that statement's date, so you don't need a complete historical trade log to see accurate current holdings on day one. Where no snapshot has been imported yet (or for periods a broker only gives as a transaction log), positions fall back to being **derived**: aggregating `Transaction` rows per `(accountId, instrumentId)` joined against the latest `PriceSnapshot`. Either way nothing is a mutable "positions" table you write to directly — recompute/prefer-snapshot, don't reconcile.
 
-`ImportBatch` exists so re-uploading the same statement is detected and skipped/confirmed rather than silently duplicating transactions.
+`ImportBatch` exists so a re-uploaded file is tracked, but dedup itself happens at the transaction level, not the batch level: each `Transaction` carries the broker's stable id (`brokerRef` — `transaction_id` for trades and cash in/outs) and a new row is only inserted if no existing `Transaction` for that account already has that `brokerRef`. This means a statement whose period partially overlaps a previous import still ingests cleanly — only the genuinely-new transactions get inserted, not the whole batch rejected or the whole batch re-inserted.
 
 ## 4. Broker import pipeline
 
@@ -119,7 +125,7 @@ Not building this now. CSV export exists and IBKR also offers **Flex Query** (a 
 **Pipeline shape (Freedom Finance only, for now):**
 1. Upload file via a form → Server Action.
 2. Route to the Freedom Finance JSON `StatementParser` → get back a `ParsedStatement`. (A broker/format selector in the UI is only needed once a second source exists.)
-3. Generic ingestion: validate, de-dupe against existing `ImportBatch` records for overlapping periods, store `Transaction` + `PositionSnapshot` rows.
+3. Generic ingestion: validate, then store `Transaction` rows keyed by `brokerRef` (skip if that broker id is already recorded for the account — see §3) and `PositionSnapshot` rows for the batch's period.
 4. Keep the raw uploaded file referenced (local file storage, not committed to git) for re-parsing if a parser bug is found later.
 
 ## 5. Frameworks
@@ -170,7 +176,7 @@ Free-tier candidates:
 | Alpha Vantage | Very limited (25 req/day as of recent changes) | Broad data but too rate-limited for regular refresh |
 | Financial Modeling Prep | Limited free tier | Better fundamentals depth, worth a look once framework metrics need it |
 
-Given free-tier limits, prices/metrics get fetched on-demand (a "refresh" button) or on a daily cadence, never polled live — `PriceSnapshot`/`MetricValue` act as a cache so the dashboard reads from the DB, not the API, on every page load. Metrics that the free API doesn't cover (ROIC especially) fall back to your manual `MetricValue` entries — see §5.
+Given free-tier limits, prices/metrics get fetched on-demand (a "refresh" button) or on a daily cadence, never polled live — `PriceSnapshot`/`MetricValue` act as a cache so the dashboard reads from the DB, not the API, on every page load. Metrics that the free API doesn't cover (ROIC especially) fall back entirely to your manual `MetricValue` entries; for a metric the API does cover, whichever row — manual or api — has the more recent `asOfDate`/`fetchedAt` is the one used, so a fresher manual correction still overrides a stale api value and vice versa — see §3.
 
 Multi-currency: both brokers may report in different currencies (e.g. USD, EUR, possibly UAH/KZT). Aggregate allocation % needs FX conversion to one base currency — likely reuse the same market-data provider for FX rates if it offers them, otherwise a small dedicated FX endpoint.
 
@@ -199,8 +205,11 @@ Per the project's CLAUDE.md, next-intl with English + Ukrainian locales is the i
 - **Freedom Finance format**: start with JSON only (real samples in hand, including one with an actual trade — see §4); other formats stay possible later behind the same `StatementParser` interface without changing ingestion logic.
 - **Interactive Brokers**: out of v1 entirely. The import design (§4) doesn't block adding it later, it's just not being built now.
 - **Freedom Finance `trades.detailed` schema**: confirmed from a real sell example (§4) — no longer a guess.
+- **Transaction dedup**: per-transaction via `brokerRef` (§3/§4), not per-batch — a re-uploaded statement with a partially-overlapping period ingests cleanly, inserting only the transactions not already present.
+- **Signal history**: `Signal` rows are insert-only (§3) — each evaluation run appends rather than overwrites, so signal history over time is preserved.
+- **FrameworkGroup allocation bands**: a framework's groups' target allocation bands must sum to 100% (§3/§5), enforced by the Phase 4 CRUD UI.
+- **MetricValue source precedence**: not "manual always wins" — whichever of the manual/api rows for a given instrument+metricKey has the more recent `asOfDate`/`fetchedAt` wins (§3/§5); manual only wins by default when the API doesn't supply that metric at all.
 
 ## 10. Still open — not blocking Phase 0/1, revisit when relevant
 
 - **Position-snapshot field mapping** (§4): a couple of Freedom Finance fields (`market_value` vs `posval`/`mval`) look redundant/contradictory — I'll settle which one is the real current market value empirically while writing the Phase 1 parser, checked against your actual account totals. This is on me to resolve during implementation, not something you need to decide.
-- **A second stray broker export file** was found sitting in the repo root, untracked (not the one you pasted into chat — a different period, with real trades in it). Waiting on your call for what to do with it (§ note above) before touching it further.
