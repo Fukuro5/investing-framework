@@ -3,7 +3,7 @@
 
 ## Architecture Overview
 
-Next.js 16 (App Router) + React 19 + TypeScript ~5 marketing app.
+Next.js 16 (App Router) + React 19 + TypeScript ~5 — a personal, local-only investing/portfolio tracker (single user, no auth). See [PLANNING.md](./PLANNING.md) for the full product plan, data model, and roadmap.
 
 ### Core Technologies
 
@@ -17,6 +17,11 @@ Next.js 16 (App Router) + React 19 + TypeScript ~5 marketing app.
 - **pnpm** — package manager (`pnpm-workspace.yaml` present)
 
 Not yet in the project — don't assume these exist until they're actually added (ask before installing, per the "Absolute Rules" below):
+- No database/ORM yet (SQLite + Prisma or Drizzle is the plan — see PLANNING.md)
+- No file-parsing libraries yet (xlsx, csv-parse, PDF/XML parsing — see PLANNING.md)
+- No market-data API client yet
+- next-intl / i18n scaffolding (`i18n/`, `messages/`, `[locale]` routing) is the intended setup per this doc but not yet installed — treat the Internationalization section below as the target, not current state, until it's added
+- No testing stack installed yet (Vitest/RTL/jsdom are the intended stack — see Testing below)
 - No state management library (no Redux/Zustand) — start with local/server state
 - No forms library — plain forms / Server Actions until a real form-heavy page needs one
 
