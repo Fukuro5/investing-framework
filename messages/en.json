@@ -5,6 +5,7 @@
   "navWidget": {
     "dashboardLink": "Dashboard",
     "importLink": "Import",
+    "frameworksLink": "Frameworks",
     "languageSwitcherLabel": "Switch language"
   },
   "dashboardPage": {
@@ -25,6 +26,21 @@
       "button": "Refresh prices",
       "successMessage": "Updated {updatedPriceCount} price(s) and {updatedFxCount} FX rate(s).",
       "partialFailureMessage": "Couldn't refresh: {failedItems}."
+    },
+    "frameworkSwitcher": {
+      "noFrameworks": "No frameworks yet.",
+      "manageLink": "Manage frameworks",
+      "selectPlaceholder": "Choose a framework",
+      "setActiveButton": "Set active"
+    },
+    "groupAllocations": {
+      "title": "{frameworkName}: allocation vs. target",
+      "columns": {
+        "group": "Group",
+        "target": "Target",
+        "current": "Current"
+      },
+      "unclassifiedLabel": "Unclassified"
     }
   },
   "importPage": {
@@ -35,10 +51,60 @@
     "successMessage": "Imported {transactionCount} transaction(s) and {positionCount} position snapshot(s).",
     "noNewTransactionsMessage": "No new transactions — everything in this file was already imported."
   },
+  "frameworksPage": {
+    "title": "Frameworks",
+    "description": "Named strategies made of groups with target allocation bands. Only one framework is active at a time.",
+    "emptyState": "No frameworks yet — create one below.",
+    "activeBadge": "Active",
+    "groupCount": "{count} group(s)",
+    "activateButton": "Set active",
+    "deleteButton": "Delete",
+    "deleteConfirm": "Delete framework \"{name}\"? This also removes its groups and instrument assignments.",
+    "createTitle": "New framework",
+    "nameLabel": "Name",
+    "descriptionLabel": "Description",
+    "createButton": "Create framework"
+  },
+  "frameworkDetailPage": {
+    "activeBadge": "Active",
+    "nameLabel": "Name",
+    "descriptionLabel": "Description",
+    "saveButton": "Save",
+    "groupsTitle": "Groups",
+    "groupsTotalValid": "Target bands bracket 100% — ready to activate.",
+    "groupsTotalInvalid": "Target bands don't bracket 100% yet (min total {minTotal}%, max total {maxTotal}%) — adjust before activating.",
+    "groupNameLabel": "Name",
+    "groupMinLabel": "Min %",
+    "groupMaxLabel": "Max %",
+    "groupPriorityLabel": "Priority",
+    "deleteGroupButton": "Delete",
+    "deleteGroupConfirm": "Delete group \"{name}\"? This only works if no instruments are assigned to it.",
+    "newGroupTitle": "Add group",
+    "addGroupButton": "Add group",
+    "assignmentsTitle": "Instrument assignments",
+    "assignmentsDescription": "Assign each held instrument to a group in this framework. Unassigned instruments stay unclassified rather than being dropped.",
+    "noPositionsToAssign": "No positions to assign yet — import a statement first.",
+    "instrumentColumn": "Instrument",
+    "groupColumn": "Group",
+    "unclassifiedOption": "Unclassified",
+    "saveAssignmentButton": "Save"
+  },
   "errors": {
     "invalidFile": "Couldn't read this file as a Freedom Finance JSON statement.",
     "genericImportError": "Something went wrong while importing this statement.",
     "missingApiKey": "Set FINNHUB_API_KEY in .env.local to enable price refresh.",
-    "genericRefreshError": "Something went wrong while refreshing market data."
+    "genericRefreshError": "Something went wrong while refreshing market data.",
+    "frameworks": {
+      "frameworkNameRequired": "Framework name is required.",
+      "frameworkNameTaken": "A framework named \"{name}\" already exists.",
+      "groupNameRequired": "Group name is required.",
+      "groupAllocationOutOfRange": "Target allocation must be between 0 and 100.",
+      "groupMinGreaterThanMax": "Target allocation minimum can't be greater than the maximum.",
+      "groupNameTaken": "This framework already has a group named \"{name}\".",
+      "groupHasAssignments": "This group still has {count} instrument(s) assigned — reassign them before deleting it.",
+      "groupsNotFullyAllocated": "This framework's groups don't bracket 100% yet — adjust the target bands before activating.",
+      "groupFieldMustBeNumber": "That field must be a number.",
+      "generic": "Something went wrong."
+    }
   }
 }

@@ -19,12 +19,13 @@ const renderNav = () =>
   );
 
 describe("Nav", () => {
-  it("renders the app name and both nav links", () => {
+  it("renders the app name and all nav links", () => {
     renderNav();
 
     expect(screen.getByText("Investing Framework")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Dashboard" })).toHaveAttribute("href", "/en");
     expect(screen.getByRole("link", { name: "Import" })).toHaveAttribute("href", "/en/import");
+    expect(screen.getByRole("link", { name: "Frameworks" })).toHaveAttribute("href", "/en/frameworks");
   });
 
   it("renders the language switcher with the active locale highlighted", () => {

@@ -5,6 +5,7 @@
   "navWidget": {
     "dashboardLink": "Панель",
     "importLink": "Імпорт",
+    "frameworksLink": "Фреймворки",
     "languageSwitcherLabel": "Змінити мову"
   },
   "dashboardPage": {
@@ -25,6 +26,21 @@
       "button": "Оновити ціни",
       "successMessage": "Оновлено {updatedPriceCount} ціну(и) та {updatedFxCount} курс(и) валют.",
       "partialFailureMessage": "Не вдалося оновити: {failedItems}."
+    },
+    "frameworkSwitcher": {
+      "noFrameworks": "Поки немає фреймворків.",
+      "manageLink": "Керувати фреймворками",
+      "selectPlaceholder": "Оберіть фреймворк",
+      "setActiveButton": "Активувати"
+    },
+    "groupAllocations": {
+      "title": "{frameworkName}: частка проти цілі",
+      "columns": {
+        "group": "Група",
+        "target": "Ціль",
+        "current": "Поточна"
+      },
+      "unclassifiedLabel": "Без категорії"
     }
   },
   "importPage": {
@@ -35,10 +51,60 @@
     "successMessage": "Імпортовано {transactionCount} транзакцій та {positionCount} знімків позицій.",
     "noNewTransactionsMessage": "Немає нових транзакцій — усе з цього файлу вже було імпортовано."
   },
+  "frameworksPage": {
+    "title": "Фреймворки",
+    "description": "Названі стратегії, що складаються з груп із цільовими частками. Активним може бути лише один фреймворк.",
+    "emptyState": "Поки немає фреймворків — створіть один нижче.",
+    "activeBadge": "Активний",
+    "groupCount": "{count} груп(и)",
+    "activateButton": "Активувати",
+    "deleteButton": "Видалити",
+    "deleteConfirm": "Видалити фреймворк «{name}»? Це також видалить його групи та призначення інструментів.",
+    "createTitle": "Новий фреймворк",
+    "nameLabel": "Назва",
+    "descriptionLabel": "Опис",
+    "createButton": "Створити фреймворк"
+  },
+  "frameworkDetailPage": {
+    "activeBadge": "Активний",
+    "nameLabel": "Назва",
+    "descriptionLabel": "Опис",
+    "saveButton": "Зберегти",
+    "groupsTitle": "Групи",
+    "groupsTotalValid": "Цільові діапазони охоплюють 100% — можна активувати.",
+    "groupsTotalInvalid": "Цільові діапазони ще не охоплюють 100% (сума мінімумів {minTotal}%, сума максимумів {maxTotal}%) — скоригуйте перед активацією.",
+    "groupNameLabel": "Назва",
+    "groupMinLabel": "Мін. %",
+    "groupMaxLabel": "Макс. %",
+    "groupPriorityLabel": "Пріоритет",
+    "deleteGroupButton": "Видалити",
+    "deleteGroupConfirm": "Видалити групу «{name}»? Це працює лише якщо до неї не призначено жодного інструмента.",
+    "newGroupTitle": "Додати групу",
+    "addGroupButton": "Додати групу",
+    "assignmentsTitle": "Призначення інструментів",
+    "assignmentsDescription": "Призначте кожен наявний інструмент до групи цього фреймворку. Непризначені інструменти залишаються без категорії, а не зникають.",
+    "noPositionsToAssign": "Поки немає позицій для призначення — спочатку імпортуйте звіт.",
+    "instrumentColumn": "Інструмент",
+    "groupColumn": "Група",
+    "unclassifiedOption": "Без категорії",
+    "saveAssignmentButton": "Зберегти"
+  },
   "errors": {
     "invalidFile": "Не вдалося прочитати цей файл як JSON-звіт Freedom Finance.",
     "genericImportError": "Під час імпорту звіту сталася помилка.",
     "missingApiKey": "Додайте FINNHUB_API_KEY у .env.local, щоб увімкнути оновлення цін.",
-    "genericRefreshError": "Під час оновлення ринкових даних сталася помилка."
+    "genericRefreshError": "Під час оновлення ринкових даних сталася помилка.",
+    "frameworks": {
+      "frameworkNameRequired": "Потрібно вказати назву фреймворку.",
+      "frameworkNameTaken": "Фреймворк із назвою «{name}» вже існує.",
+      "groupNameRequired": "Потрібно вказати назву групи.",
+      "groupAllocationOutOfRange": "Цільова частка має бути від 0 до 100.",
+      "groupMinGreaterThanMax": "Мінімум цільової частки не може бути більшим за максимум.",
+      "groupNameTaken": "У цьому фреймворку вже є група з назвою «{name}».",
+      "groupHasAssignments": "До цієї групи ще призначено {count} інструмент(ів) — спочатку перепризначте їх.",
+      "groupsNotFullyAllocated": "Групи цього фреймворку ще не охоплюють 100% — скоригуйте цільові діапазони перед активацією.",
+      "groupFieldMustBeNumber": "Це поле має бути числом.",
+      "generic": "Щось пішло не так."
+    }
   }
 }
