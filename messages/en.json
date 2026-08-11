@@ -4,7 +4,8 @@
   },
   "navWidget": {
     "dashboardLink": "Dashboard",
-    "importLink": "Import"
+    "importLink": "Import",
+    "languageSwitcherLabel": "Switch language"
   },
   "dashboardPage": {
     "title": "Dashboard",
