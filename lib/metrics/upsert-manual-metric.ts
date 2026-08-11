@@ -27,7 +27,7 @@ export const upsertManualMetric = async (input: UpsertManualMetricInput, db: Pri
         asOfDate: input.asOfDate,
       },
     },
-    update: { value: input.value },
+    update: { value: input.value, fetchedAt: new Date() },
     create: {
       instrumentId: input.instrumentId,
       metricKey,

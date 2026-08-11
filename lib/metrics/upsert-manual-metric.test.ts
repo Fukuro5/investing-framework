@@ -49,4 +49,13 @@ describe("upsertManualMetric", () => {
 
     expect(await testDb.prisma.metricValue.count({ where: { instrumentId, metricKey: "roic" } })).toBe(2);
   });
+
+  it("bumps fetchedAt when re-submitting the same instrument/key/asOfDate", async () => {
+    const asOfDate = new Date("2026-06-01");
+    const first = await upsertManualMetric({ instrumentId, metricKey: "roic", value: 18.5, asOfDate }, testDb.prisma);
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    const second = await upsertManualMetric({ instrumentId, metricKey: "roic", value: 19.2, asOfDate }, testDb.prisma);
+
+    expect(second.fetchedAt.getTime()).toBeGreaterThan(first.fetchedAt.getTime());
+  });
 });

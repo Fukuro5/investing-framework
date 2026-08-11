@@ -22,7 +22,7 @@ const refreshPrices = async (provider: MarketDataProvider, db: PrismaClient) => 
       const quote = await provider.getQuote(instrument.ticker);
       await db.priceSnapshot.upsert({
         where: { instrumentId_date: { instrumentId: instrument.id, date: quote.asOf } },
-        update: { price: quote.price },
+        update: { price: quote.price, fetchedAt: new Date() },
         create: { instrumentId: instrument.id, date: quote.asOf, price: quote.price },
       });
       updatedPriceCount += 1;
@@ -48,7 +48,7 @@ const refreshFxRates = async (provider: MarketDataProvider, db: PrismaClient) =>
       const rate = await provider.getFxRate(currency, BASE_CURRENCY);
       await db.fxRateSnapshot.upsert({
         where: { baseCurrency_quoteCurrency: { baseCurrency: currency, quoteCurrency: BASE_CURRENCY } },
-        update: { rate },
+        update: { rate, fetchedAt: new Date() },
         create: { baseCurrency: currency, quoteCurrency: BASE_CURRENCY, rate },
       });
       updatedFxCount += 1;
@@ -94,7 +94,7 @@ const refreshMetrics = async (provider: MarketDataProvider, db: PrismaClient) =>
               asOfDate: metric.asOfDate,
             },
           },
-          update: { value: metric.value },
+          update: { value: metric.value, fetchedAt: new Date() },
           create: { instrumentId: instrument.id, metricKey, value: metric.value, asOfDate: metric.asOfDate, source: "api" },
         });
         updatedMetricCount += 1;

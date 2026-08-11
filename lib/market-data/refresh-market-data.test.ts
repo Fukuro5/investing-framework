@@ -87,6 +87,19 @@ describe("refreshMarketData", () => {
     expect(result.failedFxCurrencies).toEqual(["GBP"]);
   });
 
+  it("bumps FxRateSnapshot.fetchedAt on a second refresh even when the rate is unchanged", async () => {
+    await seedInstrument("VOD.L", "GBP");
+    const provider = buildProvider();
+
+    await refreshMarketData(provider, testDb.prisma);
+    const first = await testDb.prisma.fxRateSnapshot.findFirstOrThrow();
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    await refreshMarketData(provider, testDb.prisma);
+    const second = await testDb.prisma.fxRateSnapshot.findFirstOrThrow();
+
+    expect(second.fetchedAt.getTime()).toBeGreaterThan(first.fetchedAt.getTime());
+  });
+
   it("upserts rather than duplicates on a second refresh for the same day", async () => {
     await seedInstrument("TSM.US", "USD");
     const provider = buildProvider();
@@ -95,6 +108,19 @@ describe("refreshMarketData", () => {
     await refreshMarketData(provider, testDb.prisma);
 
     expect(await testDb.prisma.priceSnapshot.count()).toBe(1);
+  });
+
+  it("bumps fetchedAt on a second refresh even when the price is unchanged", async () => {
+    await seedInstrument("TSM.US", "USD");
+    const provider = buildProvider();
+
+    await refreshMarketData(provider, testDb.prisma);
+    const first = await testDb.prisma.priceSnapshot.findFirstOrThrow();
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    await refreshMarketData(provider, testDb.prisma);
+    const second = await testDb.prisma.priceSnapshot.findFirstOrThrow();
+
+    expect(second.fetchedAt.getTime()).toBeGreaterThan(first.fetchedAt.getTime());
   });
 
   const seedActiveRule = async (metricKey: string) => {
@@ -162,5 +188,21 @@ describe("refreshMarketData", () => {
 
     expect(result.updatedMetricCount).toBe(0);
     expect(result.failedMetrics).toEqual(["TSM.US:roic"]);
+  });
+
+  it("bumps MetricValue.fetchedAt on a second refresh even when the value is unchanged", async () => {
+    await seedInstrument("TSM.US", "USD");
+    await seedActiveRule("roic");
+    const provider = buildProvider({
+      getMetric: async () => ({ value: 18, asOfDate: new Date("2026-08-01") }),
+    });
+
+    await refreshMarketData(provider, testDb.prisma);
+    const first = await testDb.prisma.metricValue.findFirstOrThrow();
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    await refreshMarketData(provider, testDb.prisma);
+    const second = await testDb.prisma.metricValue.findFirstOrThrow();
+
+    expect(second.fetchedAt.getTime()).toBeGreaterThan(first.fetchedAt.getTime());
   });
 });
