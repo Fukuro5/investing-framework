@@ -1,0 +1,25 @@
+{
+  "common": {
+    "appName": "Investing Framework"
+  },
+  "navWidget": {
+    "dashboardLink": "Панель",
+    "importLink": "Імпорт"
+  },
+  "dashboardPage": {
+    "title": "Панель",
+    "emptyState": "Поки немає позицій. Імпортуйте звіт брокера, щоб почати."
+  },
+  "importPage": {
+    "title": "Імпорт звіту",
+    "description": "Завантажте JSON-звіт Freedom Finance, щоб імпортувати транзакції та знімки позицій.",
+    "fileLabel": "Файл звіту",
+    "submitButton": "Імпортувати",
+    "successMessage": "Імпортовано {transactionCount} транзакцій та {positionCount} знімків позицій.",
+    "noNewTransactionsMessage": "Немає нових транзакцій — усе з цього файлу вже було імпортовано."
+  },
+  "errors": {
+    "invalidFile": "Не вдалося прочитати цей файл як JSON-звіт Freedom Finance.",
+    "genericImportError": "Під час імпорту звіту сталася помилка."
+  }
+}

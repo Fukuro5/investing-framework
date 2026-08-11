@@ -1,0 +1,25 @@
+{
+  "common": {
+    "appName": "Investing Framework"
+  },
+  "navWidget": {
+    "dashboardLink": "Dashboard",
+    "importLink": "Import"
+  },
+  "dashboardPage": {
+    "title": "Dashboard",
+    "emptyState": "No positions yet. Import a broker statement to get started."
+  },
+  "importPage": {
+    "title": "Import statement",
+    "description": "Upload a Freedom Finance JSON statement to import transactions and position snapshots.",
+    "fileLabel": "Statement file",
+    "submitButton": "Import",
+    "successMessage": "Imported {transactionCount} transaction(s) and {positionCount} position snapshot(s).",
+    "noNewTransactionsMessage": "No new transactions — everything in this file was already imported."
+  },
+  "errors": {
+    "invalidFile": "Couldn't read this file as a Freedom Finance JSON statement.",
+    "genericImportError": "Something went wrong while importing this statement."
+  }
+}
