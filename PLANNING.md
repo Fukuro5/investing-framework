@@ -1,37 +1,74 @@
-# PLANNING.md — Investing Framework
+# PLANNING.md — Investing Framework (v2)
 
 Personal, local-only portfolio tracker: import broker reports, see all positions with allocation/price/P&L, and evaluate your portfolio against one or more **frameworks** — named strategies (e.g. "Quality", "Momentum") each made of groups (e.g. Core @ 70%, Convexity @ some other %) with their own metrics and rules — to flag when a position should be trimmed, sold, or bought more. You can switch which framework is active to see how the same portfolio reads under a different strategy. Single user, no auth, runs on your machine.
 
 This doc is the living plan. Update it as decisions change — don't let it drift out of sync with what's actually built.
 
-## 1. Scope for v1
+> **v1 status**: Phases 0–5 shipped (foundation, import, dashboard, market data, frameworks, framework rules). The v1 plan is archived in full at [docs/PLANNING_V1.md](./docs/PLANNING_V1.md) — this file carries forward everything from it that's still relevant, plus v1's unfinished Phase 6 work, as the starting point for v2. New v2 scope/decisions get added below as they're defined.
 
-- Import transaction/position data from **Freedom Finance** (JSON statements).
-- Normalize everything into one data model designed to take other brokers/formats later without core changes (see §4) — Interactive Brokers is the known next candidate, just not v1.
-- Dashboard: positions, allocation %, current price, unrealized P&L, cost basis.
-- **Frameworks** (see §5): multiple named strategies, each with its own groups (target allocation bands) and per-group metric rules (FCF, ROIC, convexity, etc.), producing buy-more/trim/sell/hold signals per position. Switchable — same portfolio, different lens.
-- Live price (and later, fundamentals) via a free-tier third-party market data API, cached locally to respect rate limits.
-- Runs locally via `pnpm dev` — SQLite, no auth, no deployment concerns for now.
+## 1. v2 feature roadmap: Signals
 
-Out of scope for v1 (revisit later, see Phase 6): Interactive Brokers import (no sample file yet, and not needed right now), PDF/Excel/XML parsing for Freedom Finance (fallback only if JSON proves insufficient), IBKR Flex Query automation, remote deployment, multi-user/auth.
+The headline goal of v2 is a **Signals** feature: a per-position suggestion (buy more / trim / sell / hold, roughly) that combines framework rules, a qualitative investment thesis, and the company's latest financial report. It's built in five phases since each later phase depends on data/infrastructure the earlier ones create.
 
-## 2. Tech stack
+### Phase 1 — Framework rule types (allocation vs. metric)
+
+Rules need to be distinguishable by type so the Phase 5 signal engine can reason about *why* a rule fired. Two rule types, hardcoded as an enum (the types themselves are fixed; individual rule instances stay fully user-managed via the CRUD UI, consistent with v1's "nothing hardcoded" principle for rule content):
+
+- **Allocation rules** — min/max allocation % for a group as a whole, and min/max allocation % for an individual position within that group.
+- **Metric rules** — the existing shape (`metricKey`/`operator`/`threshold`, e.g. `roic > 10`).
+
+Decision: unify both into one rules table rather than keeping allocation limits on `FrameworkGroup` (as today) and metric rules in a separate table. A `type` discriminator (`'allocation' | 'metric'`) distinguishes them, so the signal engine has one query path instead of two. This means:
+- `FrameworkGroup.targetAllocationMin`/`targetAllocationMax` (existing group-level allocation band) migrates into the unified table as a group-scoped allocation rule, rather than staying a column on `FrameworkGroup`.
+- A new position-scoped allocation rule (min/max % for one instrument within a group) is added to the same table.
+- Exact column shape (nullable fields for allocation's min/max vs. metric's operator/threshold, how scope — group vs. position — is represented) is a schema-design detail to finalize when this phase starts, not decided yet.
+
+### Phase 2 — Thesis
+
+A **thesis** is free text explaining why you believe a company will go up — one thesis per `Instrument`, shared across all frameworks (a company's bull case doesn't change depending on which strategy lens you're viewing it through). Simple editable text field, stored in a new lightweight model tied to `Instrument`. No versioning/history for now — just a single current thesis per instrument, editable in place.
+
+### Phase 3 — Latest company report parsing (SEC EDGAR) — ambitious, feasibility TBD
+
+Goal: pull each portfolio company's most recent filing from [SEC EDGAR](https://www.sec.gov/edgar), and since filing structure is standardized, parse out the most relevant data and produce a per-company summary. Flagged by you as possibly not realistic — worth a real feasibility discussion (EDGAR's API shape, how consistent filing structure actually is across companies/sectors, what's mechanically extractable vs. what needs a human/AI reading) before this phase gets scoped in detail. Deferred until Phases 1–2 are done.
+
+### Phase 4 — AI thesis-vs-report analysis — most challenging, feasibility TBD
+
+Goal: use AI to compare the Phase 2 thesis against the Phase 3 report summary (or full report) and assess whether the thesis still holds, has partially broken down, or is fully invalidated. Depends entirely on Phase 3 existing first. Also deferred for a real feasibility discussion — likely the highest-uncertainty phase in this whole roadmap.
+
+### Phase 5 — Signal engine
+
+Combines the outputs of the previous phases into one per-position signal, with a visible breakdown of why it fired. Your working draft for the three inputs (not finalized — the combination logic into a single overall signal is still open):
+
+1. **Thesis-based** (Phase 4 output): thesis broken (bad) → partially holding (moderate) → holding strong (good).
+2. **Allocation-based** (Phase 1 allocation rules): position over max (trim), position under min (check thesis/metrics), group itself outside its min/max band (check the group's positions for the anomaly).
+3. **Metric-based** (Phase 1 metric rules): underperforming on 1–2 metrics (moderate), underperforming on 3+ (bad), performing well (good).
+
+Open question for when this phase is scoped: how the three sub-signals combine into one overall signal (e.g. worst-case wins, weighted, explicit rule matrix), and what "see why" looks like in the UI (most likely a breakdown per input).
+
+### Backlog — carried from v1, not currently scheduled
+
+These were v1's "Phase 6 — Optional/later" and remain unstarted, but sit behind the Signals roadmap above rather than being v2's first phase:
+
+- **PDF/Excel/XML parsing for Freedom Finance** — only if the JSON export proves insufficient.
+- **Interactive Brokers import** — CSV export exists; Flex Query automation is the likely path — the `StatementParser` interface (§4) already supports this without redesign.
+- **Remote deployment + auth** — only relevant if you want access off your own machine.
+
+## 2. Tech stack (as built)
 
 | Concern | Choice | Notes |
 |---|---|---|
-| Framework | Next.js 16 App Router, already scaffolded | Server Actions for imports/mutations, Server Components for the dashboard |
+| Framework | Next.js 16 App Router | Server Actions for imports/mutations, Server Components for the dashboard |
 | Database | SQLite (single file, zero setup) | Fits local single-user use perfectly |
-| ORM | **Prisma** | Confirmed |
-| i18n | next-intl, English + Ukrainian (per existing CLAUDE.md convention) | `[locale]` routing, `messages/en.json` + `messages/uk.json` |
-| File parsing | `JSON.parse` for now; `xlsx`, `fast-xml-parser`, `csv-parse` added per-format as new broker formats come in | Every format parser sits behind one adapter interface — see §4 |
-| Market data | **Finnhub** free tier, behind a `MarketDataProvider` interface | See §6 for why the interface matters and alternatives |
+| ORM | **Prisma** | `prisma/schema.prisma` |
+| i18n | next-intl, English + Ukrainian | `[locale]` routing, `messages/en.json` + `messages/uk.json` |
+| File parsing | `JSON.parse` for Freedom Finance | `lib/import/parsers` — other formats added per-format behind the same adapter interface, see §4 |
+| Market data | **Finnhub** free tier, behind a `MarketDataProvider` interface | `lib/market-data` — see §6 |
 | Base currency | **USD** | All allocation %/totals reported in USD; non-USD positions/cash converted at import/refresh time |
-| Testing | Vitest + React Testing Library + jsdom | Parsers are the highest-risk code here — prioritize test coverage on them specifically |
-| Styling | Tailwind v4, already scaffolded | No changes needed |
+| Testing | Vitest + React Testing Library + jsdom | Parsers remain the highest-risk code — keep prioritizing coverage there |
+| Styling | Tailwind v4 | No changes needed |
 
-Nothing in this table is installed yet — each gets proposed for install (and confirmed with you) at the point in the roadmap where it's actually needed, per the project's "ask before installing" rule.
+Any new tech for v2 gets proposed for install (and confirmed with you) at the point in the roadmap where it's actually needed, per the project's "ask before installing" rule.
 
-## 3. Data model (draft)
+## 3. Data model (as built)
 
 ```
 Broker            id, name                                         ("Freedom Finance", "Interactive Brokers")
@@ -48,6 +85,7 @@ PositionSnapshot  id, accountId, instrumentId, importBatchId, asOfDate,
                   alongside, not instead of, Transaction)
 
 PriceSnapshot     instrumentId, date, price, fetchedAt              (market-data cache)
+FxRateSnapshot    baseCurrency, quoteCurrency, date, rate, fetchedAt (FX cache, see §6)
 MetricValue       instrumentId, metricKey, value, asOfDate, source ('api'|'manual'), fetchedAt
                   (fcf, roic, peRatio, dividendYield, convexity, ... — one catalog of metrics,
                   shared across frameworks; manual doesn't automatically win — when both a manual
@@ -58,7 +96,7 @@ Framework         id, name, description, isActive
 FrameworkGroup    id, frameworkId, name, targetAllocationMin, targetAllocationMax, priority
                   ("Core" @ 65–75%, "Convexity" @ ..., priority breaks ties when auto-classifying;
                   a framework's groups' allocation bands must sum to 100%, enforced in the
-                  Phase 4 CRUD UI)
+                  CRUD UI)
 GroupRule         id, groupId, metricKey, operator, threshold,
                   role ('classification'|'signal'), isActive
                   (classification rules decide auto-membership; signal rules — same metric
@@ -81,6 +119,8 @@ The dashboard's "current positions" prefer the latest `PositionSnapshot` per `(a
 
 `ImportBatch` exists so a re-uploaded file is tracked, but dedup itself happens at the transaction level, not the batch level: each `Transaction` carries the broker's stable id (`brokerRef` — `transaction_id` for trades and cash in/outs) and a new row is only inserted if no existing `Transaction` for that account already has that `brokerRef`. This means a statement whose period partially overlaps a previous import still ingests cleanly — only the genuinely-new transactions get inserted, not the whole batch rejected or the whole batch re-inserted.
 
+Any new v2 tables/fields get added here as they're designed, rather than bolted onto the v1 shape without review. Two are already planned but not yet implemented — see §1: a `type` discriminator unifying `GroupRule` (metric rules) with allocation rules (currently split across `FrameworkGroup.targetAllocationMin`/`Max`), and a new `Thesis` model keyed to `Instrument`.
+
 ## 4. Broker import pipeline
 
 ### Extensibility: one adapter interface, format-agnostic ingestion
@@ -99,44 +139,44 @@ interface ParsedStatement {
 type StatementParser = (file: Buffer | string) => ParsedStatement;
 ```
 
-A single, format-agnostic ingestion function takes a `ParsedStatement` and handles validation, de-duplication against existing `ImportBatch`/`Transaction`/`PositionSnapshot` rows, and storage. **Adding a new format later (Freedom Excel/XML, IBKR Flex Query, a third broker) means writing one more function matching `StatementParser` — the ingestion, dedup, and storage logic never changes.** The UI's broker/format selector just picks which parser function to call.
+A single, format-agnostic ingestion function takes a `ParsedStatement` and handles validation, de-duplication against existing `ImportBatch`/`Transaction`/`PositionSnapshot` rows, and storage. **Adding a new format (Freedom Excel/XML, IBKR Flex Query, a third broker) means writing one more function matching `StatementParser` — the ingestion, dedup, and storage logic never changes.** The UI's broker/format selector just picks which parser function to call. This is what makes the carried-over IBKR/PDF/Excel/XML work (§1) additive rather than a redesign.
 
-### Freedom Finance (Freedom24) — JSON, confirmed from a real sample export
+### Freedom Finance (Freedom24) — JSON, shipped in v1
 
-A real (unredacted) sample lives at `fixtures/broker-samples/freedom-finance-2026-07.json` — gitignored, local-only, since it contains your account/email data. Use it directly when building the Phase 1 parser instead of re-deriving the shape from this doc.
+A real (unredacted) sample lives at `fixtures/broker-samples/freedom-finance-2026-07.json` — gitignored, local-only, since it contains your account/email data.
 
 The export is a **period statement** (`date_start`/`date_end`, e.g. one calendar month), not a full historical transaction dump. It contains, per period:
 
-- `account_at_start` / `account_at_end.account.positions_from_ts.ps.acc[]` — a **position snapshot** per instrument at each end of the period (quantity, avg cost, current price, market value, unrealized P&L). This is the primary source for `PositionSnapshot` rows — see §3 for why that matters (accurate current holdings without needing full trade history).
-- `trades.detailed[]` — individual buy/sell executions within the period. Confirmed from a real example (a sell of `O.US`): `operation` (`"buy"`/`"sell"`), `p` (execution price), `q` (quantity), `summ` (total consideration), `commission` + `commission_currency`, `curr_c` (trade currency), `date` (execution datetime) + `pay_d` (settlement date), `transaction_id` (stable, use for dedup), `issue_nb`/`isin` (ISIN, duplicated under both keys), `instr_nm` (ticker + market suffix, e.g. `"O.US"`), `profit` (realized gain/loss — populated on sells), `fifo_profit` (nullable — presumably an alternate realized-P&L figure for partial-lot sells, TBD). This maps directly onto `Transaction` (type = `operation`, price = `p`, quantity = `q`, fees = `commission`, brokerRef = `transaction_id`).
-- `cash_in_outs[]` — the richest transaction-level source for dividends, fees, deposits/withdrawals: has a stable `transaction_id` (good for dedup), `type_id` (e.g. `"dividend"` — stable, machine-readable), `ticker`, `amount`, `commission`. This is what `Transaction` rows for non-trade activity should be built from.
-- `corporate_actions.detailed[]` — dividend/corporate-action detail with clean tax fields (`external_tax`, `external_tax_currency`) — worth cross-referencing by `corporate_action_id` to enrich dividend transactions with tax withheld, rather than parsing it out of `cash_in_outs`' nested JSON-string `details` field.
-- `cash_flows_json[]` / `securities_flows_json[]` — per-currency/per-instrument period aggregates (start/end balances). Useful only as a reconciliation check (does our computed total match the broker's?), not as a transaction source.
-- Everything else in the file (`off_balance_*`, `ffbo_trades_offsetting`, `in_outs_securities`, etc.) was empty in the sample and/or looks broker-internal — ignored unless a future sample shows it populated with something relevant.
+- `account_at_start` / `account_at_end.account.positions_from_ts.ps.acc[]` — a **position snapshot** per instrument at each end of the period (quantity, avg cost, current price, market value, unrealized P&L). This is the primary source for `PositionSnapshot` rows.
+- `trades.detailed[]` — individual buy/sell executions within the period: `operation` (`"buy"`/`"sell"`), `p` (execution price), `q` (quantity), `summ` (total consideration), `commission` + `commission_currency`, `curr_c` (trade currency), `date` + `pay_d`, `transaction_id` (stable, used for dedup), `issue_nb`/`isin`, `instr_nm`, `profit`, `fifo_profit`. Maps onto `Transaction` (type = `operation`, price = `p`, quantity = `q`, fees = `commission`, brokerRef = `transaction_id`).
+- `cash_in_outs[]` — dividends, fees, deposits/withdrawals: `transaction_id` (dedup), `type_id` (e.g. `"dividend"`), `ticker`, `amount`, `commission`.
+- `corporate_actions.detailed[]` — dividend/corporate-action detail with tax fields (`external_tax`, `external_tax_currency`), cross-referenced by `corporate_action_id` to enrich dividend transactions.
+- `cash_flows_json[]` / `securities_flows_json[]` — per-currency/per-instrument period aggregates, used only as a reconciliation check.
+- Everything else (`off_balance_*`, `ffbo_trades_offsetting`, `in_outs_securities`, etc.) was empty in the sample and/or broker-internal — ignored unless a future sample shows it populated.
 
-Two implementation notes for whoever builds the Phase 1 parser (me, later) — not decisions that need your input, just flagging so they don't get missed:
-- **Inconsistent text encoding**: some localized fields are corrupted (e.g. `cash_flows.detailed[].type` comes through as `"ÐÐ¸Ð²ÑÐ´ÐµÐ½Ð´Ð¸"` — mangled double-encoded Ukrainian for "Дивіденди"/"Dividends"), while others in a different section of the very same file are fine (`trades.detailed[].instr_kind` came through as clean Russian text, `"акция обыкновенная"`). So it's not "the whole file is broken," it's section-by-section. Either way, the parser should never rely on these free-text fields for logic — always use the stable machine keys instead (`type_id`, `operation`, `corporate_action_id`, `ticker`/`isin`). The free-text fields are only useful if you personally want to see the broker's own description in a UI later, and only after fixing the encoding on the ones that need it.
-- **Example of a field-mapping question I'll need to resolve while coding, not now**: the position snapshot has more than one field that looks like it could be "the market value" — e.g. in the sample, `market_value` reported `2083.55` for TSM and never changed between the start-of-period and end-of-period snapshots, while `posval`/`mval` reported `2387.85` at the start and `2021.25` at the end — which does move in the direction you'd expect as TSM's price fell from `477.57` to `404.25`. That strongly suggests `posval`/`mval` are the real live market value and `market_value` is something else (maybe a reference/opening value). I'll confirm this against your actual account totals when I build the parser and pick the field that reconciles — you don't need to figure this out, I'm just noting it so a future me doesn't assume it was already double-checked.
+Known data quirks (confirmed during v1 build, kept here in case they resurface for new sample files):
+- **Inconsistent text encoding** in some localized free-text fields (e.g. mangled double-encoded Ukrainian in `cash_flows.detailed[].type`) while others in the same file are clean. The parser never relies on free-text fields for logic — always the stable machine keys (`type_id`, `operation`, `corporate_action_id`, `ticker`/`isin`).
+- **Market-value field ambiguity**: `posval`/`mval` (which move with price) were confirmed as the real live market value vs. `market_value` (a static reference figure) — resolved empirically against real account totals during the Phase 1 build.
 
-### Interactive Brokers — deferred, not in v1
+### Interactive Brokers — still deferred (§1)
 
-Not building this now. CSV export exists and IBKR also offers **Flex Query** (a server-side report you configure once and pull by URL — no manual download needed) for whenever this comes back into scope. The `StatementParser` interface above exists specifically so this slots in later as one more parser function without touching ingestion/storage logic — nothing about v1's design blocks it.
+CSV export exists; IBKR also offers Flex Query (a server-side report configured once and pulled by URL). The `StatementParser` interface above means this slots in later as one more parser function without touching ingestion/storage logic.
 
-**Pipeline shape (Freedom Finance only, for now):**
+**Pipeline shape (Freedom Finance JSON only, currently):**
 1. Upload file via a form → Server Action.
 2. Route to the Freedom Finance JSON `StatementParser` → get back a `ParsedStatement`. (A broker/format selector in the UI is only needed once a second source exists.)
-3. Generic ingestion: validate, then store `Transaction` rows keyed by `brokerRef` (skip if that broker id is already recorded for the account — see §3) and `PositionSnapshot` rows for the batch's period.
+3. Generic ingestion: validate, then store `Transaction` rows keyed by `brokerRef` and `PositionSnapshot` rows for the batch's period.
 4. Keep the raw uploaded file referenced (local file storage, not committed to git) for re-parsing if a parser bug is found later.
 
 ## 5. Frameworks
 
 A **framework** is a named strategy (e.g. "Quality", "Momentum") made of one or more **groups** (e.g. Core, Convexity), each with a target allocation band and its own metric rules. Only one framework is "active" at a time for the dashboard view, but nothing about switching is destructive — frameworks, groups, and rules are all just data; the underlying transactions/positions never change. Switching frameworks re-runs classification + signal evaluation and re-renders the same positions through the newly active framework's lens.
 
-**Group membership** (which framework-group a position belongs to) supports both mechanisms, per your call in planning:
+**Group membership** (which framework-group a position belongs to) supports both mechanisms:
 - **Manual** — you assign a position to a group yourself, per framework.
 - **Auto (rule-based)** — a group's `classification` rules (e.g. "ROIC > 15% AND FCF > 0") are evaluated against a position's current metric values; if they pass, the position is auto-assigned to that group.
 - A manual assignment always wins — the auto-classifier only fills in positions that don't already have a manual assignment for that framework.
-- If a position matches more than one group's classification rules, `FrameworkGroup.priority` breaks the tie (lower number = higher priority; exact ordering rule TBD once real rules exist — flagged in §9).
+- If a position matches more than one group's classification rules, `FrameworkGroup.priority` breaks the tie (lower number = higher priority).
 - A position that matches no group's classification rules and has no manual assignment stays unclassified for that framework (shown as such, not silently dropped).
 
 **Group rules** come in two roles, sharing the same metric catalog (`MetricValue.metricKey` — fcf, roic, peRatio, dividendYield, convexity, ...) but potentially different thresholds:
@@ -149,7 +189,9 @@ A **framework** is a named strategy (e.g. "Quality", "Momentum") made of one or 
 
 Evaluation runs on demand (after an import, a price/metric refresh, or a framework switch) rather than continuously.
 
-You'll supply the actual group/metric/rule definitions later (e.g. what "Core" requires, what "Convexity" means numerically) — this section is the mechanism, not the specific rule set. The metric catalog and classification/signal logic above are built to hold whatever rules you give it, not hardcoded to a particular framework.
+Framework/group/rule definitions are fully user-managed via the CRUD UI (`app/[locale]/frameworks`) — nothing hardcoded. This mechanism is v1-complete.
+
+**Planned for v2 (§1 Phase 1, not yet implemented)**: rules will also carry a `type` discriminator (`'allocation' | 'metric'`) — the two types are hardcoded, but every rule instance within a type stays fully user-managed, same as today. Allocation rules subsume what `FrameworkGroup.targetAllocationMin`/`Max` does today (group-scoped) and add a new position-scoped variant (min/max % for one instrument within a group); metric rules keep their current shape. This is purely about categorizing rules so the Phase 5 signal engine can tell them apart — it doesn't change classification/signal role semantics above.
 
 ## 6. Market data integration
 
@@ -165,51 +207,74 @@ interface MarketDataProvider {
 }
 ```
 
-Start with a `FinnhubProvider` implementing this. Switching later (rate limits outgrown, better fundamentals needed, going paid) means writing one new class against the same interface and changing which one gets instantiated — nothing that calls `MarketDataProvider` needs to change.
+`lib/market-data` implements this against Finnhub (`FinnhubProvider`). Switching later (rate limits outgrown, better fundamentals needed, going paid) means writing one new class against the same interface and changing which one gets instantiated — nothing that calls `MarketDataProvider` needs to change.
 
-Free-tier candidates:
+Free-tier reference (as evaluated in v1):
 
 | API | Free tier | Fit |
 |---|---|---|
-| **Finnhub** | ~60 req/min | Best free rate limit for live quotes; decent basic fundamentals |
+| **Finnhub** (chosen) | ~60 req/min | Best free rate limit for live quotes; decent basic fundamentals |
 | Twelve Data | 800 req/day | Good for price, thinner fundamentals |
 | Alpha Vantage | Very limited (25 req/day as of recent changes) | Broad data but too rate-limited for regular refresh |
 | Financial Modeling Prep | Limited free tier | Better fundamentals depth, worth a look once framework metrics need it |
 
-Given free-tier limits, prices/metrics get fetched on-demand (a "refresh" button) or on a daily cadence, never polled live — `PriceSnapshot`/`MetricValue` act as a cache so the dashboard reads from the DB, not the API, on every page load. Metrics that the free API doesn't cover (ROIC especially) fall back entirely to your manual `MetricValue` entries; for a metric the API does cover, whichever row — manual or api — has the more recent `asOfDate`/`fetchedAt` is the one used, so a fresher manual correction still overrides a stale api value and vice versa — see §3.
+Given free-tier limits, prices/metrics get fetched on-demand (a "refresh" button) or on a daily cadence, never polled live — `PriceSnapshot`/`MetricValue` act as a cache so the dashboard reads from the DB, not the API, on every page load. Metrics the free API doesn't cover (ROIC especially) fall back entirely to manual `MetricValue` entries; for a metric the API does cover, whichever row — manual or api — has the more recent `asOfDate`/`fetchedAt` is the one used, so a fresher manual correction still overrides a stale api value and vice versa.
 
-Multi-currency: both brokers may report in different currencies (e.g. USD, EUR, possibly UAH/KZT). Aggregate allocation % needs FX conversion to one base currency — likely reuse the same market-data provider for FX rates if it offers them, otherwise a small dedicated FX endpoint.
+Multi-currency: FX conversion to the USD base currency is cached via `FxRateSnapshot`, reusing the same market-data provider.
 
 ## 7. Internationalization
 
-Per the project's CLAUDE.md, next-intl with English + Ukrainian locales is the intended setup (you use both). Recommend wiring this up in Phase 0 alongside the DB, since retrofitting `[locale]` routing onto existing pages later is more churn than starting with it.
+next-intl with English + Ukrainian locales, wired up from the start in Phase 0 — `[locale]` routing, `messages/en.json` + `messages/uk.json`. Any new v2 user-facing string gets a key added to both locales in the same change.
 
 ## 8. Roadmap
 
-- **Phase 0 — Foundation**: next-intl setup (`[locale]` routing, `en`/`uk` message catalogs), Prisma + SQLite schema from §3, the `StatementParser`/`ParsedStatement` and `MarketDataProvider` interfaces from §4/§6 (structure only, no real implementation yet), base layout/nav shell.
-- **Phase 1 — Import**: Freedom Finance JSON parser only — `positionSnapshots` from `account_at_end`, `transactions` from `trades.detailed` (buys/sells) + `cash_in_outs`/`corporate_actions` (dividends, with tax detail) → generic ingestion → DB. PDF/Excel/XML for Freedom Finance and IBKR entirely deferred (§10).
-- **Phase 2 — Dashboard**: positions table — prefers latest `PositionSnapshot`, falls back to transaction-derived — quantity, avg cost, current price, allocation %, unrealized P&L, all in USD.
-- **Phase 3 — Market data**: `FinnhubProvider` implementation, price refresh flow, `PriceSnapshot` caching, FX conversion to USD.
-- **Phase 4 — Frameworks v1**: Framework/Group CRUD UI (fully user-managed — no hardcoded frameworks anywhere), manual group assignment per framework, framework switcher on the dashboard recomputing allocation-vs-target per group.
-- **Phase 5 — Framework rules**: metric catalog + `MetricValue` ingestion (API + manual override), `GroupRule` CRUD (classification + signal roles, also fully user-managed), auto-classification engine (manual assignment always wins, `priority` breaks ties), signal badges (trim/buy-more/sell/hold) computed per active framework.
-- **Phase 6 — Optional/later**: PDF/Excel/XML parsing for Freedom Finance (if JSON turns out insufficient), IBKR Flex Query automation, remote deployment + auth (only if you ever want access off your own machine).
+### Completed in v1 (see [docs/PLANNING_V1.md](./docs/PLANNING_V1.md) for full detail)
+
+- **Phase 0 — Foundation**: next-intl setup, Prisma + SQLite schema, `StatementParser`/`ParsedStatement` and `MarketDataProvider` interfaces, base layout/nav shell.
+- **Phase 1 — Import**: Freedom Finance JSON parser, generic ingestion → DB.
+- **Phase 2 — Dashboard**: positions table with allocation %, current price, unrealized P&L, all in USD.
+- **Phase 3 — Market data**: `FinnhubProvider`, price refresh flow, `PriceSnapshot` caching, FX conversion to USD.
+- **Phase 4 — Frameworks v1**: Framework/Group CRUD UI, manual group assignment, framework switcher with allocation-vs-target per group.
+- **Phase 5 — Framework rules**: metric catalog + `MetricValue` ingestion, `GroupRule` CRUD, auto-classification engine, signal badges (trim/buy-more/sell/hold).
+
+### v2 — Signals (full detail in §1)
+
+- **Phase 1** — Framework rule types: unify allocation rules (group- and position-scoped min/max) and metric rules into one rules table with a `type` discriminator.
+- **Phase 2** — Thesis: free-text investment thesis per `Instrument`, shared across frameworks.
+- **Phase 3** — SEC EDGAR report parsing: pull + parse each portfolio company's latest filing into a summary. Feasibility TBD.
+- **Phase 4** — AI thesis-vs-report analysis: assess whether a thesis still holds against Phase 3's summary. Feasibility TBD, depends on Phase 3.
+- **Phase 5** — Signal engine: combine thesis/allocation/metric sub-signals into one per-position signal with a visible breakdown.
+
+Backlog, not currently scheduled (carried from v1's Phase 6, see §1): PDF/Excel/XML parsing for Freedom Finance, Interactive Brokers import, remote deployment + auth.
 
 ## 9. Decisions log
+
+Carried over from v1 (still in effect):
 
 - **ORM**: Prisma.
 - **Base currency**: USD.
 - **Market data**: Finnhub free tier, behind a `MarketDataProvider` interface for easy swapping later.
-- **i18n**: next-intl, English + Ukrainian, kept from the start (not deferred).
-- **Frameworks/groups/rules**: fully manageable via the UI (CRUD) — the DB schema in §3/§5 is only the foundation, nothing is hardcoded. Actual group definitions, allocation bands, and rules are yours to define later through that UI, not something to decide now.
+- **i18n**: next-intl, English + Ukrainian, kept from the start.
+- **Frameworks/groups/rules**: fully manageable via the UI (CRUD) — the DB schema is only the foundation, nothing is hardcoded.
 - **Group classification tie-breaking**: `FrameworkGroup.priority` (lower wins) when a position matches multiple groups' classification rules.
-- **Freedom Finance format**: start with JSON only (real samples in hand, including one with an actual trade — see §4); other formats stay possible later behind the same `StatementParser` interface without changing ingestion logic.
-- **Interactive Brokers**: out of v1 entirely. The import design (§4) doesn't block adding it later, it's just not being built now.
-- **Freedom Finance `trades.detailed` schema**: confirmed from a real sell example (§4) — no longer a guess.
-- **Transaction dedup**: per-transaction via `brokerRef` (§3/§4), not per-batch — a re-uploaded statement with a partially-overlapping period ingests cleanly, inserting only the transactions not already present.
-- **Signal history**: `Signal` rows are insert-only (§3) — each evaluation run appends rather than overwrites, so signal history over time is preserved.
-- **FrameworkGroup allocation bands**: a framework's groups' target allocation bands must sum to 100% (§3/§5), enforced by the Phase 4 CRUD UI.
-- **MetricValue source precedence**: not "manual always wins" — whichever of the manual/api rows for a given instrument+metricKey has the more recent `asOfDate`/`fetchedAt` wins (§3/§5); manual only wins by default when the API doesn't supply that metric at all.
+- **Freedom Finance format**: JSON only; other formats stay possible later behind the same `StatementParser` interface without changing ingestion logic.
+- **Interactive Brokers**: still out of scope as of v1 close. The import design doesn't block adding it later — carried to v2 §1.
+- **Transaction dedup**: per-transaction via `brokerRef`, not per-batch — a re-uploaded statement with a partially-overlapping period ingests cleanly.
+- **Signal history**: `Signal` rows are insert-only — each evaluation run appends rather than overwrites.
+- **FrameworkGroup allocation bands**: a framework's groups' target allocation bands must sum to 100%, enforced by the CRUD UI.
+- **MetricValue source precedence**: whichever of the manual/api rows for a given instrument+metricKey has the more recent `asOfDate`/`fetchedAt` wins; manual only wins by default when the API doesn't supply that metric at all.
 
-## 10. Still open — not blocking Phase 0/1, revisit when relevant
+New v2 decisions:
 
-- **Position-snapshot field mapping** (§4): a couple of Freedom Finance fields (`market_value` vs `posval`/`mval`) look redundant/contradictory — I'll settle which one is the real current market value empirically while writing the Phase 1 parser, checked against your actual account totals. This is on me to resolve during implementation, not something you need to decide.
+- **Thesis scope**: one thesis per `Instrument`, shared across every framework — not per (Instrument, Framework) pair (§1 Phase 2).
+- **Rule type model**: allocation and metric rules unify into one rules table with a `type` discriminator, rather than keeping allocation bounds on `FrameworkGroup` separate from a metric-only rules table (§1 Phase 1).
+- **Rule types are hardcoded, rule instances aren't**: `'allocation' | 'metric'` is a fixed enum; individual rules of either type remain fully user-managed via CRUD, consistent with v1's existing "nothing hardcoded" principle for rule content.
+- **v2 Phase 6 backlog demoted**: v1's Phase 6 items (IBKR, PDF/Excel/XML parsing, deployment+auth) are *not* v2's Phase 1 — they sit in an unscheduled backlog behind the Signals roadmap (§1, §8).
+
+## 10. Still open
+
+- **Unified rules table schema** (§1 Phase 1): exact column shape — nullable fields for allocation's min/max vs. metric's operator/threshold, how scope (group vs. position) is represented — not decided yet, to finalize when this phase starts.
+- **SEC EDGAR feasibility** (§1 Phase 3): API shape, how consistent filing structure actually is across companies/sectors, what's mechanically extractable vs. needs AI/human reading. Needs a dedicated feasibility discussion before this phase is scoped in detail.
+- **AI thesis-vs-report analysis feasibility** (§1 Phase 4): depends on Phase 3 landing first; likely the highest-uncertainty phase in the v2 roadmap. Needs its own feasibility discussion.
+- **Signal combination logic** (§1 Phase 5): how the three sub-signals (thesis/allocation/metric) combine into one overall signal — draft example levels exist, but no combination rule yet.
+- *(v1's one open item — Freedom Finance `market_value` vs `posval`/`mval` field mapping — was resolved during the Phase 1 build; see §4.)*
