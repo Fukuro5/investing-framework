@@ -11,7 +11,9 @@ const buildPosition = (overrides: Partial<PositionView>): PositionView => ({
   quantity: 5,
   avgCostPrice: 100,
   marketPrice: 100,
+  marketPriceAsOf: new Date("2026-08-10"),
   marketValue: 500,
+  marketValueUsd: 500,
   unrealizedPnl: 0,
   currency: "USD",
   allocationPercent: null,
@@ -20,10 +22,10 @@ const buildPosition = (overrides: Partial<PositionView>): PositionView => ({
 });
 
 describe("withAllocationPercent", () => {
-  it("splits allocation proportionally across USD positions", () => {
+  it("splits allocation proportionally across positions with a known USD value", () => {
     const positions = [
-      buildPosition({ instrumentId: "a", marketValue: 300 }),
-      buildPosition({ instrumentId: "b", marketValue: 700 }),
+      buildPosition({ instrumentId: "a", marketValueUsd: 300 }),
+      buildPosition({ instrumentId: "b", marketValueUsd: 700 }),
     ];
 
     const [a, b] = withAllocationPercent(positions);
@@ -32,10 +34,10 @@ describe("withAllocationPercent", () => {
     expect(b.allocationPercent).toBe(70);
   });
 
-  it("leaves allocation null for a non-USD position instead of mixing currencies", () => {
+  it("leaves allocation null for a position with no cached FX rate (marketValueUsd null) instead of mixing currencies", () => {
     const positions = [
-      buildPosition({ instrumentId: "a", currency: "USD", marketValue: 500 }),
-      buildPosition({ instrumentId: "b", currency: "EUR", marketValue: 500 }),
+      buildPosition({ instrumentId: "a", currency: "USD", marketValueUsd: 500 }),
+      buildPosition({ instrumentId: "b", currency: "EUR", marketValueUsd: null }),
     ];
 
     const [a, b] = withAllocationPercent(positions);
@@ -45,15 +47,15 @@ describe("withAllocationPercent", () => {
   });
 
   it("leaves allocation null when market value is unknown (derived position with no price yet)", () => {
-    const positions = [buildPosition({ marketValue: null })];
+    const positions = [buildPosition({ marketValue: null, marketValueUsd: null })];
 
     const [position] = withAllocationPercent(positions);
 
     expect(position.allocationPercent).toBeNull();
   });
 
-  it("leaves allocation null for every position when there is no USD market value at all", () => {
-    const positions = [buildPosition({ currency: "EUR", marketValue: 100 })];
+  it("leaves allocation null for every position when there is no USD-convertible value at all", () => {
+    const positions = [buildPosition({ currency: "EUR", marketValueUsd: null })];
 
     const [position] = withAllocationPercent(positions);
 

@@ -15,9 +15,15 @@
       "quantity": "Quantity",
       "avgCost": "Avg cost",
       "currentPrice": "Current price",
+      "priceAsOf": "Price as of",
       "marketValue": "Market value",
       "allocation": "Allocation",
       "unrealizedPnl": "Unrealized P&L"
+    },
+    "refresh": {
+      "button": "Refresh prices",
+      "successMessage": "Updated {updatedPriceCount} price(s) and {updatedFxCount} FX rate(s).",
+      "partialFailureMessage": "Couldn't refresh: {failedItems}."
     }
   },
   "importPage": {
@@ -30,6 +36,8 @@
   },
   "errors": {
     "invalidFile": "Couldn't read this file as a Freedom Finance JSON statement.",
-    "genericImportError": "Something went wrong while importing this statement."
+    "genericImportError": "Something went wrong while importing this statement.",
+    "missingApiKey": "Set FINNHUB_API_KEY in .env.local to enable price refresh.",
+    "genericRefreshError": "Something went wrong while refreshing market data."
   }
 }

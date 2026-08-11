@@ -30,7 +30,61 @@ const seedInstrument = (ticker: string, currency = "USD") =>
   });
 
 describe("getPositions", () => {
-  it("returns a position sourced from the latest PositionSnapshot", async () => {
+  it("sources quantity/avgCostPrice from the latest PositionSnapshot, with no market price until a refresh has run", async () => {
+    const { account, importBatch } = await seedAccount();
+    const instrument = await seedInstrument("TSM.US");
+
+    await testDb.prisma.positionSnapshot.create({
+      data: {
+        accountId: account.id,
+        instrumentId: instrument.id,
+        importBatchId: importBatch.id,
+        asOfDate: new Date("2026-07-31"),
+        quantity: 5,
+        avgCostPrice: 369.16,
+        // The broker's own reported price/value/P&L are intentionally
+        // never read — see getPositions' comment on latestPriceByInstrumentId.
+        marketPrice: 404.25,
+        marketValue: 2021.25,
+        unrealizedPnl: 175.44,
+        currency: "USD",
+      },
+    });
+
+    const positions = await getPositions(testDb.prisma);
+
+    expect(positions).toHaveLength(1);
+    expect(positions[0]).toMatchObject({
+      accountLabel: "Freedom Finance 000",
+      ticker: "TSM.US",
+      quantity: 5,
+      avgCostPrice: 369.16,
+      marketPrice: null,
+      marketValue: null,
+      unrealizedPnl: null,
+      source: "snapshot",
+    });
+  });
+
+  it("prefers the most recent of multiple snapshots' quantity/avgCostPrice for the same instrument", async () => {
+    const { account, importBatch } = await seedAccount();
+    const instrument = await seedInstrument("TSM.US");
+    const base = { accountId: account.id, instrumentId: instrument.id, importBatchId: importBatch.id, currency: "USD" };
+
+    await testDb.prisma.positionSnapshot.create({
+      data: { ...base, asOfDate: new Date("2026-06-30"), quantity: 3, avgCostPrice: 300, marketPrice: 0, marketValue: 0, unrealizedPnl: 0 },
+    });
+    await testDb.prisma.positionSnapshot.create({
+      data: { ...base, asOfDate: new Date("2026-07-31"), quantity: 5, avgCostPrice: 369.16, marketPrice: 0, marketValue: 0, unrealizedPnl: 0 },
+    });
+
+    const positions = await getPositions(testDb.prisma);
+
+    expect(positions).toHaveLength(1);
+    expect(positions[0]).toMatchObject({ quantity: 5, avgCostPrice: 369.16 });
+  });
+
+  it("computes marketPrice/marketValue/unrealizedPnl from the cached PriceSnapshot, not the broker snapshot's own price fields", async () => {
     const { account, importBatch } = await seedAccount();
     const instrument = await seedInstrument("TSM.US");
 
@@ -48,43 +102,41 @@ describe("getPositions", () => {
         currency: "USD",
       },
     });
-
-    const positions = await getPositions(testDb.prisma);
-
-    expect(positions).toHaveLength(1);
-    expect(positions[0]).toMatchObject({
-      accountLabel: "Freedom Finance 000",
-      ticker: "TSM.US",
-      quantity: 5,
-      marketPrice: 404.25,
-      marketValue: 2021.25,
-      source: "snapshot",
+    await testDb.prisma.priceSnapshot.create({
+      data: { instrumentId: instrument.id, date: new Date("2026-08-10"), price: 418.47 },
     });
+
+    const [position] = await getPositions(testDb.prisma);
+
+    expect(position.marketPrice).toBe(418.47);
+    expect(position.marketPriceAsOf).toEqual(new Date("2026-08-10"));
+    expect(position.marketValue).toBe(5 * 418.47);
+    expect(position.unrealizedPnl).toBeCloseTo(5 * 418.47 - 5 * 369.16);
   });
 
-  it("prefers the most recent of multiple snapshots for the same instrument", async () => {
+  it("leaves marketPriceAsOf null alongside marketPrice when no PriceSnapshot has been cached yet", async () => {
     const { account, importBatch } = await seedAccount();
     const instrument = await seedInstrument("TSM.US");
-    const base = {
-      accountId: account.id,
-      instrumentId: instrument.id,
-      importBatchId: importBatch.id,
-      quantity: 5,
-      avgCostPrice: 369.16,
-      currency: "USD",
-    };
 
     await testDb.prisma.positionSnapshot.create({
-      data: { ...base, asOfDate: new Date("2026-06-30"), marketPrice: 477.57, marketValue: 2387.85, unrealizedPnl: 542.04 },
-    });
-    await testDb.prisma.positionSnapshot.create({
-      data: { ...base, asOfDate: new Date("2026-07-31"), marketPrice: 404.25, marketValue: 2021.25, unrealizedPnl: 175.44 },
+      data: {
+        accountId: account.id,
+        instrumentId: instrument.id,
+        importBatchId: importBatch.id,
+        asOfDate: new Date("2026-07-31"),
+        quantity: 5,
+        avgCostPrice: 369.16,
+        marketPrice: 0,
+        marketValue: 0,
+        unrealizedPnl: 0,
+        currency: "USD",
+      },
     });
 
-    const positions = await getPositions(testDb.prisma);
+    const [position] = await getPositions(testDb.prisma);
 
-    expect(positions).toHaveLength(1);
-    expect(positions[0].marketPrice).toBe(404.25);
+    expect(position.marketPrice).toBeNull();
+    expect(position.marketPriceAsOf).toBeNull();
   });
 
   it("excludes a snapshot with zero quantity (a closed position)", async () => {
@@ -218,5 +270,64 @@ describe("getPositions", () => {
 
     expect(positions).toHaveLength(1);
     expect(positions[0]).toMatchObject({ quantity: 5, source: "snapshot" });
+  });
+
+  it("converts a non-USD position's market value to USD using a cached FxRateSnapshot", async () => {
+    const { account, importBatch } = await seedAccount();
+    const instrument = await seedInstrument("VOD.L", "GBP");
+
+    await testDb.prisma.positionSnapshot.create({
+      data: {
+        accountId: account.id,
+        instrumentId: instrument.id,
+        importBatchId: importBatch.id,
+        asOfDate: new Date("2026-07-31"),
+        quantity: 100,
+        avgCostPrice: 2,
+        marketPrice: 0,
+        marketValue: 0,
+        unrealizedPnl: 0,
+        currency: "GBP",
+      },
+    });
+    await testDb.prisma.priceSnapshot.create({
+      data: { instrumentId: instrument.id, date: new Date("2026-08-10"), price: 2.5 },
+    });
+    await testDb.prisma.fxRateSnapshot.create({
+      data: { baseCurrency: "GBP", quoteCurrency: "USD", rate: 1.27 },
+    });
+
+    const [position] = await getPositions(testDb.prisma);
+
+    expect(position.marketValue).toBe(250);
+    expect(position.marketValueUsd).toBeCloseTo(317.5);
+  });
+
+  it("leaves marketValueUsd null for a non-USD position when no FxRateSnapshot has been cached yet", async () => {
+    const { account, importBatch } = await seedAccount();
+    const instrument = await seedInstrument("VOD.L", "GBP");
+
+    await testDb.prisma.positionSnapshot.create({
+      data: {
+        accountId: account.id,
+        instrumentId: instrument.id,
+        importBatchId: importBatch.id,
+        asOfDate: new Date("2026-07-31"),
+        quantity: 100,
+        avgCostPrice: 2,
+        marketPrice: 0,
+        marketValue: 0,
+        unrealizedPnl: 0,
+        currency: "GBP",
+      },
+    });
+    await testDb.prisma.priceSnapshot.create({
+      data: { instrumentId: instrument.id, date: new Date("2026-08-10"), price: 2.5 },
+    });
+
+    const [position] = await getPositions(testDb.prisma);
+
+    expect(position.marketValue).toBe(250);
+    expect(position.marketValueUsd).toBeNull();
   });
 });

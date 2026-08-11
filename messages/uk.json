@@ -15,9 +15,15 @@
       "quantity": "Кількість",
       "avgCost": "Середня ціна",
       "currentPrice": "Поточна ціна",
+      "priceAsOf": "Ціна станом на",
       "marketValue": "Ринкова вартість",
       "allocation": "Частка",
       "unrealizedPnl": "Нереаліз. П/З"
+    },
+    "refresh": {
+      "button": "Оновити ціни",
+      "successMessage": "Оновлено {updatedPriceCount} ціну(и) та {updatedFxCount} курс(и) валют.",
+      "partialFailureMessage": "Не вдалося оновити: {failedItems}."
     }
   },
   "importPage": {
@@ -30,6 +36,8 @@
   },
   "errors": {
     "invalidFile": "Не вдалося прочитати цей файл як JSON-звіт Freedom Finance.",
-    "genericImportError": "Під час імпорту звіту сталася помилка."
+    "genericImportError": "Під час імпорту звіту сталася помилка.",
+    "missingApiKey": "Додайте FINNHUB_API_KEY у .env.local, щоб увімкнути оновлення цін.",
+    "genericRefreshError": "Під час оновлення ринкових даних сталася помилка."
   }
 }

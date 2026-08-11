@@ -14,7 +14,9 @@ const buildPosition = (overrides: Partial<PositionView> = {}): PositionView => (
   quantity: 5,
   avgCostPrice: 369.16,
   marketPrice: 404.25,
+  marketPriceAsOf: new Date("2026-08-10T20:00:00.000Z"),
   marketValue: 2021.25,
+  marketValueUsd: 2021.25,
   unrealizedPnl: 175.44,
   currency: "USD",
   allocationPercent: 100,
@@ -45,9 +47,18 @@ describe("PositionsTable", () => {
     expect(screen.getByText("100%")).toBeInTheDocument();
   });
 
-  it("shows the unavailable placeholder for a null market price/value/allocation", () => {
-    renderTable([buildPosition({ marketPrice: null, marketValue: null, unrealizedPnl: null, allocationPercent: null, source: "derived" })]);
+  it("shows the unavailable placeholder for a null market price/date/value/allocation", () => {
+    renderTable([
+      buildPosition({
+        marketPrice: null,
+        marketPriceAsOf: null,
+        marketValue: null,
+        unrealizedPnl: null,
+        allocationPercent: null,
+        source: "derived",
+      }),
+    ]);
 
-    expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(3);
+    expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(4);
   });
 });
