@@ -1,0 +1,152 @@
+{
+  "common": {
+    "appName": "Investing Framework"
+  },
+  "navWidget": {
+    "dashboardLink": "Панель",
+    "importLink": "Імпорт",
+    "frameworksLink": "Фреймворки",
+    "metricsLink": "Метрики",
+    "languageSwitcherLabel": "Змінити мову"
+  },
+  "dashboardPage": {
+    "title": "Панель",
+    "emptyState": "Поки немає позицій. Імпортуйте звіт брокера, щоб почати.",
+    "unavailable": "—",
+    "columns": {
+      "instrument": "Інструмент",
+      "quantity": "Кількість",
+      "avgCost": "Середня ціна",
+      "currentPrice": "Поточна ціна",
+      "priceAsOf": "Ціна станом на",
+      "marketValue": "Ринкова вартість",
+      "allocation": "Частка",
+      "unrealizedPnl": "Нереаліз. П/З"
+    },
+    "refresh": {
+      "button": "Оновити ціни",
+      "successMessage": "Оновлено {updatedPriceCount} ціну(и), {updatedFxCount} курс(и) валют та {updatedMetricCount} метрику(и).",
+      "partialFailureMessage": "Не вдалося оновити: {failedItems}."
+    },
+    "frameworkSwitcher": {
+      "noFrameworks": "Поки немає фреймворків.",
+      "manageLink": "Керувати фреймворками",
+      "selectPlaceholder": "Оберіть фреймворк",
+      "setActiveButton": "Активувати"
+    },
+    "groupAllocations": {
+      "title": "{frameworkName}: частка проти цілі",
+      "columns": {
+        "group": "Група",
+        "target": "Ціль",
+        "current": "Поточна"
+      },
+      "unclassifiedLabel": "Без категорії"
+    }
+  },
+  "importPage": {
+    "title": "Імпорт звіту",
+    "description": "Завантажте JSON-звіт Freedom Finance, щоб імпортувати транзакції та знімки позицій.",
+    "fileLabel": "Файл звіту",
+    "submitButton": "Імпортувати",
+    "successMessage": "Імпортовано {transactionCount} транзакцій та {positionCount} знімків позицій.",
+    "noNewTransactionsMessage": "Немає нових транзакцій — усе з цього файлу вже було імпортовано."
+  },
+  "frameworksPage": {
+    "title": "Фреймворки",
+    "description": "Названі стратегії, що складаються з груп із цільовими частками. Активним може бути лише один фреймворк.",
+    "emptyState": "Поки немає фреймворків — створіть один нижче.",
+    "activeBadge": "Активний",
+    "groupCount": "{count} груп(и)",
+    "activateButton": "Активувати",
+    "deleteButton": "Видалити",
+    "deleteConfirm": "Видалити фреймворк «{name}»? Це також видалить його групи та призначення інструментів.",
+    "createTitle": "Новий фреймворк",
+    "nameLabel": "Назва",
+    "descriptionLabel": "Опис",
+    "createButton": "Створити фреймворк"
+  },
+  "frameworkDetailPage": {
+    "activeBadge": "Активний",
+    "nameLabel": "Назва",
+    "descriptionLabel": "Опис",
+    "saveButton": "Зберегти",
+    "evaluateButton": "Перерахувати",
+    "evaluateSuccessMessage": "Класифіковано {classifiedCount} позицію(ї).",
+    "groupsTitle": "Групи",
+    "groupsTotalValid": "Цільові діапазони охоплюють 100% — можна активувати.",
+    "groupsTotalInvalid": "Цільові діапазони ще не охоплюють 100% (сума мінімумів {minTotal}%, сума максимумів {maxTotal}%) — скоригуйте перед активацією.",
+    "groupNameLabel": "Назва",
+    "groupMinLabel": "Мін. %",
+    "groupMaxLabel": "Макс. %",
+    "groupPriorityLabel": "Пріоритет",
+    "deleteGroupButton": "Видалити",
+    "deleteGroupConfirm": "Видалити групу «{name}»? Це працює лише якщо до неї не призначено жодного інструмента.",
+    "newGroupTitle": "Додати групу",
+    "addGroupButton": "Додати групу",
+    "rulesTitle": "Правила",
+    "ruleMetricKeyLabel": "Метрика",
+    "ruleOperatorLabel": "Оператор",
+    "ruleOperators": {
+      "gt": "> (більше)",
+      "gte": "≥ (більше або дорівнює)",
+      "lt": "< (менше)",
+      "lte": "≤ (менше або дорівнює)",
+      "eq": "= (дорівнює)"
+    },
+    "ruleThresholdLabel": "Порогове значення",
+    "ruleActiveLabel": "Активне",
+    "addRuleButton": "Додати правило",
+    "deleteRuleConfirm": "Видалити правило «{metricKey}»?",
+    "assignmentsTitle": "Призначення інструментів",
+    "assignmentsDescription": "Призначте кожен наявний інструмент до групи цього фреймворку. Непризначені інструменти залишаються без категорії, а не зникають.",
+    "noPositionsToAssign": "Поки немає позицій для призначення — спочатку імпортуйте звіт.",
+    "instrumentColumn": "Інструмент",
+    "groupColumn": "Група",
+    "unclassifiedOption": "Без категорії",
+    "saveAssignmentButton": "Зберегти"
+  },
+  "metricsPage": {
+    "title": "Метрики",
+    "description": "Вручну введіть значення метрик, які використовують правила фреймворків (наприклад, ROIC, FCF). Значення, отримане з API ринкових даних, може перевизначити ручне значення, і навпаки — перемагає те, що новіше.",
+    "noPositions": "Поки немає позицій — спочатку імпортуйте звіт.",
+    "columns": {
+      "metricKey": "Метрика",
+      "value": "Значення",
+      "asOfDate": "Станом на",
+      "source": "Джерело"
+    },
+    "sourceManual": "Вручну",
+    "sourceApi": "API",
+    "metricKeyLabel": "Метрика",
+    "valueLabel": "Значення",
+    "asOfDateLabel": "Дата станом на",
+    "saveButton": "Зберегти"
+  },
+  "errors": {
+    "invalidFile": "Не вдалося прочитати цей файл як JSON-звіт Freedom Finance.",
+    "genericImportError": "Під час імпорту звіту сталася помилка.",
+    "missingApiKey": "Додайте FINNHUB_API_KEY у .env.local, щоб увімкнути оновлення цін.",
+    "genericRefreshError": "Під час оновлення ринкових даних сталася помилка.",
+    "frameworks": {
+      "frameworkNameRequired": "Потрібно вказати назву фреймворку.",
+      "frameworkNameTaken": "Фреймворк із назвою «{name}» вже існує.",
+      "groupNameRequired": "Потрібно вказати назву групи.",
+      "groupAllocationOutOfRange": "Цільова частка має бути від 0 до 100.",
+      "groupMinGreaterThanMax": "Мінімум цільової частки не може бути більшим за максимум.",
+      "groupNameTaken": "У цьому фреймворку вже є група з назвою «{name}».",
+      "groupHasAssignments": "До цієї групи ще призначено {count} інструмент(ів) — спочатку перепризначте їх.",
+      "groupsNotFullyAllocated": "Групи цього фреймворку ще не охоплюють 100% — скоригуйте цільові діапазони перед активацією.",
+      "groupFieldMustBeNumber": "Це поле має бути числом.",
+      "ruleMetricKeyRequired": "Потрібно вказати метрику.",
+      "ruleOperatorInvalid": "Нерозпізнаний оператор.",
+      "generic": "Щось пішло не так."
+    },
+    "metrics": {
+      "metricKeyRequired": "Потрібно вказати метрику.",
+      "metricValueMustBeNumber": "Значення метрики має бути числом.",
+      "metricAsOfDateInvalid": "Це не дійсна дата.",
+      "generic": "Щось пішло не так."
+    }
+  }
+}

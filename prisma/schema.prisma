@@ -1,0 +1,221 @@
+// Data model per PLANNING.md §3. SQLite has no native enum type, so
+// categorical fields (type, status, source, operator, role) are plain
+// String columns validated against the const unions in lib/*/consts.ts.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Broker {
+  id       String    @id @default(cuid())
+  name     String    @unique
+  accounts Account[]
+}
+
+model Account {
+  id           String   @id @default(cuid())
+  brokerId     String
+  broker       Broker   @relation(fields: [brokerId], references: [id])
+  label        String
+  baseCurrency String
+
+  importBatches     ImportBatch[]
+  transactions      Transaction[]
+  positionSnapshots PositionSnapshot[]
+
+  @@unique([brokerId, label])
+}
+
+model Instrument {
+  id        String  @id @default(cuid())
+  // Globally unique on its own: parsers pass the broker's full symbol
+  // (e.g. "TSM.US"), which already disambiguates market/exchange, so a
+  // compound unique with the nullable `exchange` column would break
+  // find-or-create dedup — SQLite (and most SQL databases) treat multiple
+  // NULLs as distinct in a unique index.
+  ticker    String  @unique
+  isin      String?
+  name      String
+  assetType String
+  currency  String
+  exchange  String?
+
+  transactions      Transaction[]
+  positionSnapshots PositionSnapshot[]
+  priceSnapshots    PriceSnapshot[]
+  metricValues      MetricValue[]
+  groupAssignments  InstrumentGroupAssignment[]
+  signals           Signal[]
+}
+
+// One row per uploaded broker statement. Dedup happens at the Transaction
+// level (via brokerRef), not here — see Transaction.brokerRef.
+model ImportBatch {
+  id         String   @id @default(cuid())
+  accountId  String
+  account    Account  @relation(fields: [accountId], references: [id])
+  fileName   String
+  fileType   String
+  importedAt DateTime @default(now())
+  status     String
+  rawFileRef String?
+
+  transactions      Transaction[]
+  positionSnapshots PositionSnapshot[]
+}
+
+model Transaction {
+  id            String   @id @default(cuid())
+  accountId     String
+  account       Account  @relation(fields: [accountId], references: [id])
+  instrumentId  String?
+  instrument    Instrument? @relation(fields: [instrumentId], references: [id])
+  importBatchId String
+  importBatch   ImportBatch @relation(fields: [importBatchId], references: [id])
+  type          String
+  date          DateTime
+  quantity      Float?
+  price         Float?
+  fees          Float?
+  currency      String
+  brokerRef     String
+
+  // Dedup key: a re-imported/overlapping statement only inserts the
+  // transactions not already present for this account (PLANNING.md §3).
+  @@unique([accountId, brokerRef])
+}
+
+model PositionSnapshot {
+  id            String     @id @default(cuid())
+  accountId     String
+  account       Account    @relation(fields: [accountId], references: [id])
+  instrumentId  String
+  instrument    Instrument @relation(fields: [instrumentId], references: [id])
+  importBatchId String
+  importBatch   ImportBatch @relation(fields: [importBatchId], references: [id])
+  asOfDate      DateTime
+  quantity      Float
+  avgCostPrice  Float
+  marketPrice   Float
+  marketValue   Float
+  unrealizedPnl Float
+  currency      String
+
+  @@unique([accountId, instrumentId, asOfDate])
+}
+
+model PriceSnapshot {
+  id           String     @id @default(cuid())
+  instrumentId String
+  instrument   Instrument @relation(fields: [instrumentId], references: [id])
+  date         DateTime
+  price        Float
+  fetchedAt    DateTime   @default(now())
+
+  @@unique([instrumentId, date])
+}
+
+// FX conversion cache (PLANNING.md §6) — not in the original §3 model list,
+// added in Phase 3 so allocation %/totals can convert non-USD positions to
+// USD from a cached rate rather than calling the market-data provider live
+// on every dashboard render.
+model FxRateSnapshot {
+  id            String   @id @default(cuid())
+  baseCurrency  String
+  quoteCurrency String
+  rate          Float
+  fetchedAt     DateTime @default(now())
+
+  @@unique([baseCurrency, quoteCurrency])
+}
+
+// metricKey values live in the shared metric catalog (fcf, roic, peRatio,
+// dividendYield, convexity, ...) — see PLANNING.md §5/§6 for precedence.
+model MetricValue {
+  id           String     @id @default(cuid())
+  instrumentId String
+  instrument   Instrument @relation(fields: [instrumentId], references: [id])
+  metricKey    String
+  value        Float
+  asOfDate     DateTime
+  source       String
+  fetchedAt    DateTime   @default(now())
+
+  @@unique([instrumentId, metricKey, source, asOfDate])
+}
+
+model Framework {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  description String?
+  isActive    Boolean @default(false)
+
+  groups      FrameworkGroup[]
+  assignments InstrumentGroupAssignment[]
+  signals     Signal[]
+}
+
+// A framework's groups' allocation bands must sum to 100% — enforced by
+// the Phase 4 CRUD UI, not by the schema (PLANNING.md §3/§9).
+model FrameworkGroup {
+  id                  String    @id @default(cuid())
+  frameworkId         String
+  framework           Framework @relation(fields: [frameworkId], references: [id])
+  name                String
+  targetAllocationMin Float
+  targetAllocationMax Float
+  priority            Int
+
+  rules       GroupRule[]
+  assignments InstrumentGroupAssignment[]
+
+  @@unique([frameworkId, name])
+}
+
+model GroupRule {
+  id        String         @id @default(cuid())
+  groupId   String
+  group     FrameworkGroup @relation(fields: [groupId], references: [id])
+  metricKey String
+  operator  String
+  threshold Float
+  role      String
+  isActive  Boolean        @default(true)
+
+  signals Signal[]
+}
+
+// Membership is per-framework — the same instrument can sit in different
+// groups depending on which framework is active (PLANNING.md §3/§5).
+model InstrumentGroupAssignment {
+  id           String     @id @default(cuid())
+  frameworkId  String
+  framework    Framework  @relation(fields: [frameworkId], references: [id])
+  groupId      String
+  group        FrameworkGroup @relation(fields: [groupId], references: [id])
+  instrumentId String
+  instrument   Instrument @relation(fields: [instrumentId], references: [id])
+  source       String
+  assignedAt   DateTime   @default(now())
+
+  @@unique([frameworkId, instrumentId])
+}
+
+// Insert-only: each evaluation run appends rows rather than upserting, so
+// signal history over time is preserved (PLANNING.md §3/§9).
+model Signal {
+  id           String     @id @default(cuid())
+  frameworkId  String
+  framework    Framework  @relation(fields: [frameworkId], references: [id])
+  instrumentId String
+  instrument   Instrument @relation(fields: [instrumentId], references: [id])
+  groupRuleId  String
+  groupRule    GroupRule  @relation(fields: [groupRuleId], references: [id])
+  evaluatedAt  DateTime   @default(now())
+  status       String
+  message      String?
+}
