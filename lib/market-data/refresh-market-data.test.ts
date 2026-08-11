@@ -96,4 +96,71 @@ describe("refreshMarketData", () => {
 
     expect(await testDb.prisma.priceSnapshot.count()).toBe(1);
   });
+
+  const seedActiveRule = async (metricKey: string) => {
+    const framework = await testDb.prisma.framework.create({ data: { name: "Quality" } });
+    const group = await testDb.prisma.frameworkGroup.create({
+      data: { frameworkId: framework.id, name: "Core", targetAllocationMin: 100, targetAllocationMax: 100, priority: 0 },
+    });
+    await testDb.prisma.groupRule.create({
+      data: { groupId: group.id, metricKey, operator: "gt", threshold: 15, role: "classification", isActive: true },
+    });
+  };
+
+  it("only fetches metrics for keys referenced by an active GroupRule", async () => {
+    await seedInstrument("TSM.US", "USD");
+    await seedActiveRule("roic");
+    const metricCalls: string[] = [];
+
+    const provider = buildProvider({
+      getMetric: async (_ticker, metricKey) => {
+        metricCalls.push(metricKey);
+        return { value: 18, asOfDate: new Date("2026-08-01") };
+      },
+    });
+
+    const result = await refreshMarketData(provider, testDb.prisma);
+
+    expect(metricCalls).toEqual(["roic"]);
+    expect(result.updatedMetricCount).toBe(1);
+    const metric = await testDb.prisma.metricValue.findFirstOrThrow();
+    expect(metric).toMatchObject({ metricKey: "roic", value: 18, source: "api" });
+  });
+
+  it("does nothing when there are no active rules, without erroring", async () => {
+    await seedInstrument("TSM.US", "USD");
+    const provider = buildProvider({ getMetric: async () => ({ value: 1, asOfDate: new Date() }) });
+
+    const result = await refreshMarketData(provider, testDb.prisma);
+
+    expect(result.updatedMetricCount).toBe(0);
+    expect(await testDb.prisma.metricValue.count()).toBe(0);
+  });
+
+  it("does nothing when the provider doesn't implement getMetric", async () => {
+    await seedInstrument("TSM.US", "USD");
+    await seedActiveRule("roic");
+    const provider = buildProvider();
+    delete provider.getMetric;
+
+    const result = await refreshMarketData(provider, testDb.prisma);
+
+    expect(result.updatedMetricCount).toBe(0);
+    expect(result.failedMetrics).toEqual([]);
+  });
+
+  it("records a failed metric fetch without failing the rest of the refresh", async () => {
+    await seedInstrument("TSM.US", "USD");
+    await seedActiveRule("roic");
+    const provider = buildProvider({
+      getMetric: async () => {
+        throw new Error("rate limited");
+      },
+    });
+
+    const result = await refreshMarketData(provider, testDb.prisma);
+
+    expect(result.updatedMetricCount).toBe(0);
+    expect(result.failedMetrics).toEqual(["TSM.US:roic"]);
+  });
 });

@@ -6,6 +6,7 @@
     "dashboardLink": "Панель",
     "importLink": "Імпорт",
     "frameworksLink": "Фреймворки",
+    "metricsLink": "Метрики",
     "languageSwitcherLabel": "Змінити мову"
   },
   "dashboardPage": {
@@ -24,7 +25,7 @@
     },
     "refresh": {
       "button": "Оновити ціни",
-      "successMessage": "Оновлено {updatedPriceCount} ціну(и) та {updatedFxCount} курс(и) валют.",
+      "successMessage": "Оновлено {updatedPriceCount} ціну(и), {updatedFxCount} курс(и) валют та {updatedMetricCount} метрику(и).",
       "partialFailureMessage": "Не вдалося оновити: {failedItems}."
     },
     "frameworkSwitcher": {
@@ -70,6 +71,8 @@
     "nameLabel": "Назва",
     "descriptionLabel": "Опис",
     "saveButton": "Зберегти",
+    "evaluateButton": "Перерахувати",
+    "evaluateSuccessMessage": "Класифіковано {classifiedCount} позицію(ї).",
     "groupsTitle": "Групи",
     "groupsTotalValid": "Цільові діапазони охоплюють 100% — можна активувати.",
     "groupsTotalInvalid": "Цільові діапазони ще не охоплюють 100% (сума мінімумів {minTotal}%, сума максимумів {maxTotal}%) — скоригуйте перед активацією.",
@@ -81,6 +84,20 @@
     "deleteGroupConfirm": "Видалити групу «{name}»? Це працює лише якщо до неї не призначено жодного інструмента.",
     "newGroupTitle": "Додати групу",
     "addGroupButton": "Додати групу",
+    "rulesTitle": "Правила",
+    "ruleMetricKeyLabel": "Метрика",
+    "ruleOperatorLabel": "Оператор",
+    "ruleOperators": {
+      "gt": "> (більше)",
+      "gte": "≥ (більше або дорівнює)",
+      "lt": "< (менше)",
+      "lte": "≤ (менше або дорівнює)",
+      "eq": "= (дорівнює)"
+    },
+    "ruleThresholdLabel": "Порогове значення",
+    "ruleActiveLabel": "Активне",
+    "addRuleButton": "Додати правило",
+    "deleteRuleConfirm": "Видалити правило «{metricKey}»?",
     "assignmentsTitle": "Призначення інструментів",
     "assignmentsDescription": "Призначте кожен наявний інструмент до групи цього фреймворку. Непризначені інструменти залишаються без категорії, а не зникають.",
     "noPositionsToAssign": "Поки немає позицій для призначення — спочатку імпортуйте звіт.",
@@ -88,6 +105,23 @@
     "groupColumn": "Група",
     "unclassifiedOption": "Без категорії",
     "saveAssignmentButton": "Зберегти"
+  },
+  "metricsPage": {
+    "title": "Метрики",
+    "description": "Вручну введіть значення метрик, які використовують правила фреймворків (наприклад, ROIC, FCF). Значення, отримане з API ринкових даних, може перевизначити ручне значення, і навпаки — перемагає те, що новіше.",
+    "noPositions": "Поки немає позицій — спочатку імпортуйте звіт.",
+    "columns": {
+      "metricKey": "Метрика",
+      "value": "Значення",
+      "asOfDate": "Станом на",
+      "source": "Джерело"
+    },
+    "sourceManual": "Вручну",
+    "sourceApi": "API",
+    "metricKeyLabel": "Метрика",
+    "valueLabel": "Значення",
+    "asOfDateLabel": "Дата станом на",
+    "saveButton": "Зберегти"
   },
   "errors": {
     "invalidFile": "Не вдалося прочитати цей файл як JSON-звіт Freedom Finance.",
@@ -104,6 +138,14 @@
       "groupHasAssignments": "До цієї групи ще призначено {count} інструмент(ів) — спочатку перепризначте їх.",
       "groupsNotFullyAllocated": "Групи цього фреймворку ще не охоплюють 100% — скоригуйте цільові діапазони перед активацією.",
       "groupFieldMustBeNumber": "Це поле має бути числом.",
+      "ruleMetricKeyRequired": "Потрібно вказати метрику.",
+      "ruleOperatorInvalid": "Нерозпізнаний оператор.",
+      "generic": "Щось пішло не так."
+    },
+    "metrics": {
+      "metricKeyRequired": "Потрібно вказати метрику.",
+      "metricValueMustBeNumber": "Значення метрики має бути числом.",
+      "metricAsOfDateInvalid": "Це не дійсна дата.",
       "generic": "Щось пішло не так."
     }
   }

@@ -1,9 +1,18 @@
 import { getTranslations } from "next-intl/server";
 import { ActivateFrameworkButton } from "@/app/[locale]/frameworks/ActivateFrameworkButton";
 import { AssignmentsTable } from "@/app/[locale]/frameworks/[frameworkId]/AssignmentsTable";
-import { createGroupAction, deleteGroupAction, updateGroupAction } from "@/app/[locale]/frameworks/[frameworkId]/actions";
+import {
+  createGroupAction,
+  createRuleAction,
+  deleteGroupAction,
+  deleteRuleAction,
+  updateGroupAction,
+  updateRuleAction,
+} from "@/app/[locale]/frameworks/[frameworkId]/actions";
 import { EditFrameworkForm } from "@/app/[locale]/frameworks/[frameworkId]/EditFrameworkForm";
+import { EvaluateFrameworkButton } from "@/app/[locale]/frameworks/[frameworkId]/EvaluateFrameworkButton";
 import { GroupForm } from "@/app/[locale]/frameworks/[frameworkId]/GroupForm";
+import { RuleForm } from "@/app/[locale]/frameworks/[frameworkId]/RuleForm";
 import { DeleteButton } from "@/components/DeleteButton";
 import { getPositions } from "@/lib/dashboard/get-positions";
 import { getFrameworkDetail } from "@/lib/frameworks/get-framework-detail";
@@ -39,27 +48,58 @@ const FrameworkDetailPage = async ({ params }: PageProps<"/[locale]/frameworks/[
           <ActivateFrameworkButton frameworkId={framework.id} />
         </div>
       )}
+      <EvaluateFrameworkButton frameworkId={framework.id} />
 
-      <ul className="mt-4 flex flex-col gap-3">
+      <ul className="mt-4 flex flex-col gap-4">
         {framework.groups.map((group) => (
-          <li key={group.id} className="flex flex-wrap items-end gap-3 rounded border border-black/10 p-3 dark:border-white/10">
-            <GroupForm
-              action={updateGroupAction}
-              hiddenFields={{ groupId: group.id }}
-              defaultValues={{
-                name: group.name,
-                targetAllocationMin: group.targetAllocationMin,
-                targetAllocationMax: group.targetAllocationMax,
-                priority: group.priority,
-              }}
-              submitLabel={t("saveButton")}
-            />
-            <DeleteButton
-              action={deleteGroupAction}
-              confirmMessage={t("deleteGroupConfirm", { name: group.name })}
-              label={t("deleteGroupButton")}
-              hiddenFields={{ groupId: group.id }}
-            />
+          <li key={group.id} className="rounded border border-black/10 p-3 dark:border-white/10">
+            <div className="flex flex-wrap items-end gap-3">
+              <GroupForm
+                action={updateGroupAction}
+                hiddenFields={{ groupId: group.id }}
+                defaultValues={{
+                  name: group.name,
+                  targetAllocationMin: group.targetAllocationMin,
+                  targetAllocationMax: group.targetAllocationMax,
+                  priority: group.priority,
+                }}
+                submitLabel={t("saveButton")}
+              />
+              <DeleteButton
+                action={deleteGroupAction}
+                confirmMessage={t("deleteGroupConfirm", { name: group.name })}
+                label={t("deleteGroupButton")}
+                hiddenFields={{ groupId: group.id }}
+              />
+            </div>
+
+            <h4 className="mt-4 text-sm font-semibold">{t("rulesTitle")}</h4>
+            <ul className="mt-2 flex flex-col gap-2">
+              {group.rules.map((rule) => (
+                <li key={rule.id} className="flex flex-wrap items-end gap-3">
+                  <RuleForm
+                    action={updateRuleAction}
+                    hiddenFields={{ ruleId: rule.id }}
+                    defaultValues={{
+                      metricKey: rule.metricKey,
+                      operator: rule.operator,
+                      threshold: rule.threshold,
+                      isActive: rule.isActive,
+                    }}
+                    submitLabel={t("saveButton")}
+                  />
+                  <DeleteButton
+                    action={deleteRuleAction}
+                    confirmMessage={t("deleteRuleConfirm", { metricKey: rule.metricKey })}
+                    label={t("deleteGroupButton")}
+                    hiddenFields={{ ruleId: rule.id }}
+                  />
+                </li>
+              ))}
+            </ul>
+            <div className="mt-2">
+              <RuleForm action={createRuleAction} hiddenFields={{ groupId: group.id }} submitLabel={t("addRuleButton")} />
+            </div>
           </li>
         ))}
       </ul>

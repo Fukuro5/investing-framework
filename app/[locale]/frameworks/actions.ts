@@ -5,6 +5,7 @@ import { getLocale } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "@/i18n/navigation";
 import type { DeleteActionState } from "@/components/DeleteButton";
+import { classifyInstruments } from "@/lib/frameworks/classify-instruments";
 import { createFramework } from "@/lib/frameworks/create-framework";
 import { deleteFramework } from "@/lib/frameworks/delete-framework";
 import { resolveFrameworkErrorMessage } from "@/lib/frameworks/resolve-error-message";
@@ -65,6 +66,10 @@ export const activateFrameworkAction = async (
 
   try {
     await setActiveFramework(frameworkId, db);
+    // Switching frameworks is an explicit evaluation trigger (PLANNING.md
+    // §5) — recompute right away rather than showing a stale/empty
+    // classification until someone happens to click "Recompute".
+    await classifyInstruments(frameworkId, db);
   } catch (error) {
     return { status: "error", errorMessage: await resolveFrameworkErrorMessage(error) };
   }

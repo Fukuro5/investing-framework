@@ -8,6 +8,8 @@ export interface RefreshMarketDataResult {
   failedPriceTickers: string[];
   updatedFxCount: number;
   failedFxCurrencies: string[];
+  updatedMetricCount: number;
+  failedMetrics: string[];
 }
 
 const refreshPrices = async (provider: MarketDataProvider, db: PrismaClient) => {
@@ -58,15 +60,67 @@ const refreshFxRates = async (provider: MarketDataProvider, db: PrismaClient) =>
   return { updatedFxCount, failedFxCurrencies };
 };
 
+// Only metric keys actually referenced by an active GroupRule are fetched
+// — an unbounded "every metric key anyone's ever typed" refresh would burn
+// through Finnhub's free-tier rate limit for keys nothing currently uses.
+const refreshMetrics = async (provider: MarketDataProvider, db: PrismaClient) => {
+  let updatedMetricCount = 0;
+  const failedMetrics: string[] = [];
+
+  if (!provider.getMetric) {
+    return { updatedMetricCount, failedMetrics };
+  }
+
+  const [instruments, activeRules] = await Promise.all([
+    db.instrument.findMany(),
+    db.groupRule.findMany({ where: { isActive: true }, select: { metricKey: true } }),
+  ]);
+  const metricKeys = [...new Set(activeRules.map((rule) => rule.metricKey))];
+
+  for (const instrument of instruments) {
+    for (const metricKey of metricKeys) {
+      try {
+        const metric = await provider.getMetric(instrument.ticker, metricKey);
+        if (!metric) {
+          continue;
+        }
+
+        await db.metricValue.upsert({
+          where: {
+            instrumentId_metricKey_source_asOfDate: {
+              instrumentId: instrument.id,
+              metricKey,
+              source: "api",
+              asOfDate: metric.asOfDate,
+            },
+          },
+          update: { value: metric.value },
+          create: { instrumentId: instrument.id, metricKey, value: metric.value, asOfDate: metric.asOfDate, source: "api" },
+        });
+        updatedMetricCount += 1;
+      } catch {
+        failedMetrics.push(`${instrument.ticker}:${metricKey}`);
+      }
+    }
+  }
+
+  return { updatedMetricCount, failedMetrics };
+};
+
 // The one "refresh" action behind the market-data button (PLANNING.md §6):
-// fetches a quote per known instrument and an FX rate per non-USD currency
-// in use, caching both as PriceSnapshot/FxRateSnapshot rows so normal page
+// fetches a quote per known instrument, an FX rate per non-USD currency in
+// use, and a metric value per (instrument, active-rule metric key), caching
+// all three as PriceSnapshot/FxRateSnapshot/MetricValue rows so normal page
 // loads keep reading from the DB, never calling the provider live.
 export const refreshMarketData = async (
   provider: MarketDataProvider,
   db: PrismaClient = prisma,
 ): Promise<RefreshMarketDataResult> => {
-  const [prices, fxRates] = await Promise.all([refreshPrices(provider, db), refreshFxRates(provider, db)]);
+  const [prices, fxRates, metrics] = await Promise.all([
+    refreshPrices(provider, db),
+    refreshFxRates(provider, db),
+    refreshMetrics(provider, db),
+  ]);
 
-  return { ...prices, ...fxRates };
+  return { ...prices, ...fxRates, ...metrics };
 };

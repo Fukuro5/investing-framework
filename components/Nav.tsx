@@ -20,6 +20,9 @@ export const Nav = () => {
           <Link href="/frameworks" className="text-sm hover:underline">
             {tNav('frameworksLink')}
           </Link>
+          <Link href="/metrics" className="text-sm hover:underline">
+            {tNav('metricsLink')}
+          </Link>
         </div>
         <LanguageSwitcher />
       </div>

@@ -6,6 +6,7 @@
     "dashboardLink": "Dashboard",
     "importLink": "Import",
     "frameworksLink": "Frameworks",
+    "metricsLink": "Metrics",
     "languageSwitcherLabel": "Switch language"
   },
   "dashboardPage": {
@@ -24,7 +25,7 @@
     },
     "refresh": {
       "button": "Refresh prices",
-      "successMessage": "Updated {updatedPriceCount} price(s) and {updatedFxCount} FX rate(s).",
+      "successMessage": "Updated {updatedPriceCount} price(s), {updatedFxCount} FX rate(s), and {updatedMetricCount} metric(s).",
       "partialFailureMessage": "Couldn't refresh: {failedItems}."
     },
     "frameworkSwitcher": {
@@ -70,6 +71,8 @@
     "nameLabel": "Name",
     "descriptionLabel": "Description",
     "saveButton": "Save",
+    "evaluateButton": "Recompute",
+    "evaluateSuccessMessage": "Classified {classifiedCount} position(s).",
     "groupsTitle": "Groups",
     "groupsTotalValid": "Target bands bracket 100% — ready to activate.",
     "groupsTotalInvalid": "Target bands don't bracket 100% yet (min total {minTotal}%, max total {maxTotal}%) — adjust before activating.",
@@ -81,6 +84,20 @@
     "deleteGroupConfirm": "Delete group \"{name}\"? This only works if no instruments are assigned to it.",
     "newGroupTitle": "Add group",
     "addGroupButton": "Add group",
+    "rulesTitle": "Rules",
+    "ruleMetricKeyLabel": "Metric key",
+    "ruleOperatorLabel": "Operator",
+    "ruleOperators": {
+      "gt": "> (greater than)",
+      "gte": "≥ (greater than or equal)",
+      "lt": "< (less than)",
+      "lte": "≤ (less than or equal)",
+      "eq": "= (equal to)"
+    },
+    "ruleThresholdLabel": "Threshold",
+    "ruleActiveLabel": "Active",
+    "addRuleButton": "Add rule",
+    "deleteRuleConfirm": "Delete the \"{metricKey}\" rule?",
     "assignmentsTitle": "Instrument assignments",
     "assignmentsDescription": "Assign each held instrument to a group in this framework. Unassigned instruments stay unclassified rather than being dropped.",
     "noPositionsToAssign": "No positions to assign yet — import a statement first.",
@@ -88,6 +105,23 @@
     "groupColumn": "Group",
     "unclassifiedOption": "Unclassified",
     "saveAssignmentButton": "Save"
+  },
+  "metricsPage": {
+    "title": "Metrics",
+    "description": "Manually enter metric values used by framework rules (e.g. ROIC, FCF). A metric fetched from the market data API can override a manual entry, and vice versa — whichever is more recent wins.",
+    "noPositions": "No positions yet — import a statement first.",
+    "columns": {
+      "metricKey": "Metric",
+      "value": "Value",
+      "asOfDate": "As of",
+      "source": "Source"
+    },
+    "sourceManual": "Manual",
+    "sourceApi": "API",
+    "metricKeyLabel": "Metric key",
+    "valueLabel": "Value",
+    "asOfDateLabel": "As of date",
+    "saveButton": "Save"
   },
   "errors": {
     "invalidFile": "Couldn't read this file as a Freedom Finance JSON statement.",
@@ -104,6 +138,14 @@
       "groupHasAssignments": "This group still has {count} instrument(s) assigned — reassign them before deleting it.",
       "groupsNotFullyAllocated": "This framework's groups don't bracket 100% yet — adjust the target bands before activating.",
       "groupFieldMustBeNumber": "That field must be a number.",
+      "ruleMetricKeyRequired": "Metric key is required.",
+      "ruleOperatorInvalid": "Unrecognized operator.",
+      "generic": "Something went wrong."
+    },
+    "metrics": {
+      "metricKeyRequired": "Metric key is required.",
+      "metricValueMustBeNumber": "Metric value must be a number.",
+      "metricAsOfDateInvalid": "That's not a valid date.",
       "generic": "Something went wrong."
     }
   }

@@ -73,10 +73,57 @@ describe("createFinnhubProvider", () => {
     await expect(provider.getFxRate("EUR", "USD")).rejects.toThrow(/no forex rate/);
   });
 
-  it("getMetric returns null (fundamentals are Phase 5 scope, not implemented)", async () => {
+  it("getMetric returns null for an unmapped metric key without calling the API", async () => {
+    const provider = createFinnhubProvider("test-key");
+
+    await expect(provider.getMetric?.("TSM.US", "convexity")).resolves.toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("getMetric maps a flat metric field, using the start of today as the asOfDate", async () => {
+    fetchMock.mockReturnValueOnce(jsonResponse({ metric: { peNormalizedAnnual: 28.4 } }));
+    const provider = createFinnhubProvider("test-key");
+
+    const result = await provider.getMetric?.("TSM.US", "peRatio");
+    const now = new Date();
+
+    expect(result?.value).toBe(28.4);
+    expect(result?.asOfDate).toEqual(new Date(now.getFullYear(), now.getMonth(), now.getDate()));
+  });
+
+  it("getMetric returns null when the flat field is missing from the response", async () => {
+    fetchMock.mockReturnValueOnce(jsonResponse({ metric: {} }));
+    const provider = createFinnhubProvider("test-key");
+
+    await expect(provider.getMetric?.("TSM.US", "dividendYield")).resolves.toBeNull();
+  });
+
+  it("getMetric picks the most recent annual series point for roic", async () => {
+    fetchMock.mockReturnValueOnce(
+      jsonResponse({
+        metric: {},
+        series: {
+          annual: {
+            roic: [
+              { period: "2024-12-31", v: 12.1 },
+              { period: "2025-12-31", v: 14.7 },
+              { period: "2023-12-31", v: 10.5 },
+            ],
+          },
+        },
+      }),
+    );
+    const provider = createFinnhubProvider("test-key");
+
+    const result = await provider.getMetric?.("TSM.US", "roic");
+
+    expect(result).toEqual({ value: 14.7, asOfDate: new Date("2025-12-31") });
+  });
+
+  it("getMetric returns null when the annual series is empty for that field", async () => {
+    fetchMock.mockReturnValueOnce(jsonResponse({ metric: {}, series: { annual: {} } }));
     const provider = createFinnhubProvider("test-key");
 
     await expect(provider.getMetric?.("TSM.US", "roic")).resolves.toBeNull();
-    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

@@ -11,7 +11,11 @@ export const RefreshMarketDataButton = () => {
   const tErrors = useTranslations("errors");
   const [state, formAction, isPending] = useActionState(refreshMarketDataAction, INITIAL_STATE);
 
-  const failedItems = [...(state.failedPriceTickers ?? []), ...(state.failedFxCurrencies ?? [])];
+  const failedItems = [
+    ...(state.failedPriceTickers ?? []),
+    ...(state.failedFxCurrencies ?? []),
+    ...(state.failedMetrics ?? []),
+  ];
 
   return (
     <form action={formAction} className="mt-4 flex flex-col gap-2">
@@ -27,6 +31,7 @@ export const RefreshMarketDataButton = () => {
           {t("successMessage", {
             updatedPriceCount: state.updatedPriceCount ?? 0,
             updatedFxCount: state.updatedFxCount ?? 0,
+            updatedMetricCount: state.updatedMetricCount ?? 0,
           })}
         </p>
       )}

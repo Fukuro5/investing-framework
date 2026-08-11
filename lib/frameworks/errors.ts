@@ -7,7 +7,9 @@ export type FrameworkErrorCode =
   | "groupNameTaken"
   | "groupHasAssignments"
   | "groupsNotFullyAllocated"
-  | "groupFieldMustBeNumber";
+  | "groupFieldMustBeNumber"
+  | "ruleMetricKeyRequired"
+  | "ruleOperatorInvalid";
 
 // `message` is for logs/tests (readable, stable-enough to assert on);
 // `code` + `params` are what Server Actions use to look up a translated,

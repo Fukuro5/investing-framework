@@ -5,7 +5,7 @@ import { validateGroupsTotal } from "@/lib/frameworks/validate-groups-total";
 export const getFrameworkDetail = async (frameworkId: string, db: PrismaClient = prisma) => {
   const framework = await db.framework.findUniqueOrThrow({
     where: { id: frameworkId },
-    include: { groups: { orderBy: { priority: "asc" } } },
+    include: { groups: { orderBy: { priority: "asc" }, include: { rules: { orderBy: { metricKey: "asc" } } } } },
   });
 
   const assignments = await db.instrumentGroupAssignment.findMany({
