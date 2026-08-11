@@ -8,7 +8,17 @@
   },
   "dashboardPage": {
     "title": "Dashboard",
-    "emptyState": "No positions yet. Import a broker statement to get started."
+    "emptyState": "No positions yet. Import a broker statement to get started.",
+    "unavailable": "—",
+    "columns": {
+      "instrument": "Instrument",
+      "quantity": "Quantity",
+      "avgCost": "Avg cost",
+      "currentPrice": "Current price",
+      "marketValue": "Market value",
+      "allocation": "Allocation",
+      "unrealizedPnl": "Unrealized P&L"
+    }
   },
   "importPage": {
     "title": "Import statement",

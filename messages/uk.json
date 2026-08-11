@@ -8,7 +8,17 @@
   },
   "dashboardPage": {
     "title": "Панель",
-    "emptyState": "Поки немає позицій. Імпортуйте звіт брокера, щоб почати."
+    "emptyState": "Поки немає позицій. Імпортуйте звіт брокера, щоб почати.",
+    "unavailable": "—",
+    "columns": {
+      "instrument": "Інструмент",
+      "quantity": "Кількість",
+      "avgCost": "Середня ціна",
+      "currentPrice": "Поточна ціна",
+      "marketValue": "Ринкова вартість",
+      "allocation": "Частка",
+      "unrealizedPnl": "Нереаліз. П/З"
+    }
   },
   "importPage": {
     "title": "Імпорт звіту",

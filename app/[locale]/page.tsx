@@ -1,12 +1,17 @@
-import { useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
+import { PositionsTable } from "@/app/[locale]/PositionsTable";
+import { withAllocationPercent } from "@/lib/dashboard/allocation";
+import { getPositions } from "@/lib/dashboard/get-positions";
 
-const DashboardPage = () => {
-  const t = useTranslations("dashboardPage");
+const DashboardPage = async ({ params }: PageProps<"/[locale]">) => {
+  const { locale } = await params;
+  const t = await getTranslations("dashboardPage");
+  const positions = withAllocationPercent(await getPositions());
 
   return (
     <div className="px-6 py-8">
       <h1 className="text-2xl font-semibold">{t("title")}</h1>
-      <p className="mt-2 text-sm text-black/60 dark:text-white/60">{t("emptyState")}</p>
+      <PositionsTable positions={positions} locale={locale} />
     </div>
   );
 };
