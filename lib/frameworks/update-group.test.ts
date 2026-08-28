@@ -29,7 +29,10 @@ describe("updateGroup", () => {
       testDb.prisma,
     );
 
-    expect(updated).toMatchObject({ targetAllocationMin: 60, targetAllocationMax: 80, priority: 1 });
+    expect(updated).toMatchObject({ priority: 1 });
+
+    const groupRule = await testDb.prisma.groupRule.findFirstOrThrow({ where: { groupId: updated.id } });
+    expect(groupRule).toMatchObject({ minAllocation: 60, maxAllocation: 80 });
   });
 
   it("allows renaming to a name not used by another group in the same framework", async () => {

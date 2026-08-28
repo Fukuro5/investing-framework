@@ -85,6 +85,11 @@
     "newGroupTitle": "Додати групу",
     "addGroupButton": "Додати групу",
     "rulesTitle": "Правила",
+    "ruleTypeLabel": "Тип правила",
+    "ruleTypes": {
+      "metric": "Метрика",
+      "allocation": "Розподіл позиції"
+    },
     "ruleMetricKeyLabel": "Метрика",
     "ruleOperatorLabel": "Оператор",
     "ruleOperators": {
@@ -95,6 +100,13 @@
       "eq": "= (дорівнює)"
     },
     "ruleThresholdLabel": "Порогове значення",
+    "ruleRoleLabel": "Роль",
+    "ruleRoles": {
+      "classification": "Класифікація (визначає членство в групі)",
+      "signal": "Сигнал (визначає скоротити/докупити/продати/тримати)"
+    },
+    "ruleMinAllocationLabel": "Мін. % на позицію",
+    "ruleMaxAllocationLabel": "Макс. % на позицію",
     "ruleActiveLabel": "Активне",
     "addRuleButton": "Додати правило",
     "deleteRuleConfirm": "Видалити правило «{metricKey}»?",
@@ -140,6 +152,13 @@
       "groupFieldMustBeNumber": "Це поле має бути числом.",
       "ruleMetricKeyRequired": "Потрібно вказати метрику.",
       "ruleOperatorInvalid": "Нерозпізнаний оператор.",
+      "ruleTypeInvalid": "Нерозпізнаний тип правила.",
+      "ruleRoleInvalid": "Нерозпізнана роль.",
+      "ruleAllocationOutOfRange": "Розподіл має бути від 0 до 100.",
+      "ruleMinGreaterThanMax": "Мінімум розподілу не може бути більшим за максимум.",
+      "ruleGroupScopeNotAllowed": "Власний діапазон розподілу групи редагується у формі групи, а не в списку правил.",
+      "ruleGroupScopeCannotBeDeleted": "Власний діапазон розподілу групи не можна видалити окремо — видаліть групу.",
+      "rulePositionScopeAlreadyExists": "У цій групі вже є правило розподілу на рівні позиції — відредагуйте його замість створення нового.",
       "generic": "Щось пішло не так."
     },
     "metrics": {

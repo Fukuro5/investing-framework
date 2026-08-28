@@ -57,12 +57,12 @@ const seedMetric = (instrumentId: string, metricKey: string, value: number) =>
 
 const seedGroup = (name: string, priority: number) =>
   testDb.prisma.frameworkGroup.create({
-    data: { frameworkId, name, targetAllocationMin: 0, targetAllocationMax: 100, priority },
+    data: { frameworkId, name, priority },
   });
 
 const seedRule = (groupId: string, metricKey: string, operator: string, threshold: number) =>
   testDb.prisma.groupRule.create({
-    data: { groupId, metricKey, operator, threshold, role: "classification", isActive: true },
+    data: { groupId, type: "metric", metricKey, operator, threshold, role: "classification", isActive: true },
   });
 
 describe("classifyInstruments", () => {
@@ -159,5 +159,19 @@ describe("classifyInstruments", () => {
     const result = await classifyInstruments(frameworkId, testDb.prisma);
 
     expect(result.classifiedCount).toBe(0);
+  });
+
+  it("never treats an allocation rule as a classification rule", async () => {
+    const instrument = await seedPosition("TSM.US");
+    await seedMetric(instrument.id, "roic", 20);
+    const core = await seedGroup("Core", 0);
+    await testDb.prisma.groupRule.create({
+      data: { groupId: core.id, type: "allocation", scope: "group", minAllocation: 0, maxAllocation: 100, role: "signal" },
+    });
+
+    const result = await classifyInstruments(frameworkId, testDb.prisma);
+
+    expect(result.classifiedCount).toBe(0);
+    expect(await testDb.prisma.instrumentGroupAssignment.count()).toBe(0);
   });
 });

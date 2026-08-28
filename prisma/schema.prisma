@@ -160,15 +160,15 @@ model Framework {
 }
 
 // A framework's groups' allocation bands must sum to 100% — enforced by
-// the Phase 4 CRUD UI, not by the schema (PLANNING.md §3/§9).
+// the Phase 4 CRUD UI, not by the schema (PLANNING.md §3/§9). The band
+// itself now lives on GroupRule (type='allocation', scope='group') rather
+// than as columns here (PLANNING.md §1 Phase 1).
 model FrameworkGroup {
-  id                  String    @id @default(cuid())
-  frameworkId         String
-  framework           Framework @relation(fields: [frameworkId], references: [id])
-  name                String
-  targetAllocationMin Float
-  targetAllocationMax Float
-  priority            Int
+  id          String    @id @default(cuid())
+  frameworkId String
+  framework   Framework @relation(fields: [frameworkId], references: [id])
+  name        String
+  priority    Int
 
   rules       GroupRule[]
   assignments InstrumentGroupAssignment[]
@@ -176,15 +176,27 @@ model FrameworkGroup {
   @@unique([frameworkId, name])
 }
 
+// Unified rule table (PLANNING.md §1 Phase 1): `type` discriminates
+// allocation rules (group- or position-scoped min/max) from metric rules
+// (metricKey/operator/threshold, the pre-existing shape). Exactly one
+// column set is populated per type — the other stays null.
 model GroupRule {
-  id        String         @id @default(cuid())
-  groupId   String
-  group     FrameworkGroup @relation(fields: [groupId], references: [id])
-  metricKey String
-  operator  String
-  threshold Float
-  role      String
-  isActive  Boolean        @default(true)
+  id            String         @id @default(cuid())
+  groupId       String
+  group         FrameworkGroup @relation(fields: [groupId], references: [id])
+  type          String
+  // Only for type='allocation': 'group' (one required per group, the
+  // group's own target band) or 'position' (optional uniform band applied
+  // to every position currently in the group).
+  scope         String?
+  minAllocation Float?
+  maxAllocation Float?
+  // Only for type='metric'.
+  metricKey     String?
+  operator      String?
+  threshold     Float?
+  role          String
+  isActive      Boolean        @default(true)
 
   signals Signal[]
 }

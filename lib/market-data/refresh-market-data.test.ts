@@ -126,11 +126,12 @@ describe("refreshMarketData", () => {
   const seedActiveRule = async (metricKey: string) => {
     const framework = await testDb.prisma.framework.create({ data: { name: "Quality" } });
     const group = await testDb.prisma.frameworkGroup.create({
-      data: { frameworkId: framework.id, name: "Core", targetAllocationMin: 100, targetAllocationMax: 100, priority: 0 },
+      data: { frameworkId: framework.id, name: "Core", priority: 0 },
     });
     await testDb.prisma.groupRule.create({
-      data: { groupId: group.id, metricKey, operator: "gt", threshold: 15, role: "classification", isActive: true },
+      data: { groupId: group.id, type: "metric", metricKey, operator: "gt", threshold: 15, role: "classification", isActive: true },
     });
+    return group.id;
   };
 
   it("only fetches metrics for keys referenced by an active GroupRule", async () => {
@@ -151,6 +152,26 @@ describe("refreshMarketData", () => {
     expect(result.updatedMetricCount).toBe(1);
     const metric = await testDb.prisma.metricValue.findFirstOrThrow();
     expect(metric).toMatchObject({ metricKey: "roic", value: 18, source: "api" });
+  });
+
+  it("never treats an allocation rule as a metric key to fetch", async () => {
+    await seedInstrument("TSM.US", "USD");
+    const groupId = await seedActiveRule("roic");
+    await testDb.prisma.groupRule.create({
+      data: { groupId, type: "allocation", scope: "position", minAllocation: 0, maxAllocation: 15, role: "signal" },
+    });
+    const metricCalls: string[] = [];
+
+    const provider = buildProvider({
+      getMetric: async (_ticker, metricKey) => {
+        metricCalls.push(metricKey);
+        return { value: 18, asOfDate: new Date("2026-08-01") };
+      },
+    });
+
+    await refreshMarketData(provider, testDb.prisma);
+
+    expect(metricCalls).toEqual(["roic"]);
   });
 
   it("does nothing when there are no active rules, without erroring", async () => {

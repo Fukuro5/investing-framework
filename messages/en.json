@@ -85,6 +85,11 @@
     "newGroupTitle": "Add group",
     "addGroupButton": "Add group",
     "rulesTitle": "Rules",
+    "ruleTypeLabel": "Rule type",
+    "ruleTypes": {
+      "metric": "Metric",
+      "allocation": "Position allocation"
+    },
     "ruleMetricKeyLabel": "Metric key",
     "ruleOperatorLabel": "Operator",
     "ruleOperators": {
@@ -95,6 +100,13 @@
       "eq": "= (equal to)"
     },
     "ruleThresholdLabel": "Threshold",
+    "ruleRoleLabel": "Role",
+    "ruleRoles": {
+      "classification": "Classification (decides group membership)",
+      "signal": "Signal (decides trim/buy-more/sell/hold)"
+    },
+    "ruleMinAllocationLabel": "Min % per position",
+    "ruleMaxAllocationLabel": "Max % per position",
     "ruleActiveLabel": "Active",
     "addRuleButton": "Add rule",
     "deleteRuleConfirm": "Delete the \"{metricKey}\" rule?",
@@ -140,6 +152,13 @@
       "groupFieldMustBeNumber": "That field must be a number.",
       "ruleMetricKeyRequired": "Metric key is required.",
       "ruleOperatorInvalid": "Unrecognized operator.",
+      "ruleTypeInvalid": "Unrecognized rule type.",
+      "ruleRoleInvalid": "Unrecognized role.",
+      "ruleAllocationOutOfRange": "Allocation must be between 0 and 100.",
+      "ruleMinGreaterThanMax": "Allocation minimum can't be greater than the maximum.",
+      "ruleGroupScopeNotAllowed": "A group's own allocation band is edited from the group form, not the rule list.",
+      "ruleGroupScopeCannotBeDeleted": "A group's own allocation band can't be deleted — delete the group instead.",
+      "rulePositionScopeAlreadyExists": "This group already has a position-level allocation rule — edit it instead of adding another.",
       "generic": "Something went wrong."
     },
     "metrics": {
