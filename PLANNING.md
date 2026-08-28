@@ -38,13 +38,25 @@ GroupRule   id, groupId, type ('allocation'|'metric'), role ('classification'|'s
 
 A **thesis** is free text explaining why you believe a company will go up — one thesis per `Instrument`, shared across all frameworks (a company's bull case doesn't change depending on which strategy lens you're viewing it through). Simple editable text field, stored in a new lightweight model tied to `Instrument`. No versioning/history for now — just a single current thesis per instrument, editable in place.
 
-### Phase 3 — Latest company report parsing (SEC EDGAR) — ambitious, feasibility TBD
+### Phase 3 — SEC EDGAR integration — two separate data paths
 
-Goal: pull each portfolio company's most recent filing from [SEC EDGAR](https://www.sec.gov/edgar), and since filing structure is standardized, parse out the most relevant data and produce a per-company summary. Flagged by you as possibly not realistic — worth a real feasibility discussion (EDGAR's API shape, how consistent filing structure actually is across companies/sectors, what's mechanically extractable vs. what needs a human/AI reading) before this phase gets scoped in detail. Deferred until Phases 1–2 are done.
+Investigated and more feasible than originally feared. [SEC EDGAR](https://www.sec.gov/edgar)'s `data.sec.gov` REST APIs are free, JSON, and need **no API key or auth** — just a descriptive `User-Agent` header (app name + contact email) and staying under 10 requests/sec per IP.
 
-### Phase 4 — AI thesis-vs-report analysis — most challenging, feasibility TBD
+**Trigger model (applies to both sub-parts below): manual, per-company, and new-filing-gated.** Neither check runs automatically or on a schedule — you click a "check for updates" action on a specific position. That action first asks EDGAR whether a filing newer than the last one you checked exists at all (comparing against a small stored pointer — the last-seen filing's date/accession number per instrument, not the filing content itself) — and only does the real fetch/compute work if there's actually something new. A no-new-filing result is cheap and shows "already up to date since your last check."
 
-Goal: use AI to compare the Phase 2 thesis against the Phase 3 report summary (or full report) and assess whether the thesis still holds, has partially broken down, or is fully invalidated. Depends entirely on Phase 3 existing first. Also deferred for a real feasibility discussion — likely the highest-uncertainty phase in this whole roadmap.
+**3a. Financials trend check (structured/XBRL data)** — a lightweight screening signal, not a deep analysis:
+- EDGAR's XBRL APIs (`companyconcept`/`frames`) return clean, standardized GAAP-tagged financial line items per company — no custom parser needed for this part.
+- Once a new filing is confirmed (per the trigger model above), pull the current + prior-year-same-period value (YoY, to control for seasonality) for a small fixed set of core line items (revenue, net income), and compute **one composite verdict** — e.g. improving / flat / deteriorating — rather than a breakdown of individual metrics. This is deliberately a glance-able flag: if it comes back bad, you go check the filing/EDGAR yourself rather than the app trying to explain why.
+- **No raw financials get stored.** The underlying dollar figures are fetched fresh from EDGAR each time and never persisted — only the computed composite verdict is saved, and it slots into the *existing* `MetricValue` table from Phase 1 (a new `metricKey`, e.g. `edgarFinancialsTrend`, with `source: 'api'`) rather than needing a new table. This also means it's usable as an input to Phase 1's metric rules / Phase 5's metric-based sub-signal for free.
+- Exact core line items and verdict thresholds (what counts as "deteriorating") are an implementation detail to settle when this phase starts, not decided now.
+
+**3b. Raw filing text for thesis comparison (feeds Phase 4)** — no structured API for this; once a new filing is confirmed, fetch the actual filing document (via the submissions API to find the accession number/document URL), strip HTML to plain text, and hand it to an AI model alongside the thesis. No bespoke section-extraction parser needed — the AI model does that work in Phase 4 rather than a hand-written parser doing it first.
+
+### Phase 4 — AI thesis-vs-report analysis
+
+Goal: send Phase 2's thesis + Phase 3b's raw filing text to an AI model with a prompt, and get back a verdict on whether the thesis still holds, is partially weakening, or is broken — feeding Phase 5's thesis-based sub-signal. Runs as part of the same manual, per-company, new-filing-gated trigger as Phase 3.
+
+**Which AI provider/model to use is deliberately not decided yet** — revisit when this phase starts. The request shape (send thesis + filing text + prompt, get back a structured judgment) is similar enough across mainstream providers that the choice isn't a blocking architectural decision now. One candidate researched so far: Claude API (Anthropic) is priced purely per-token via an API key (no monthly subscription, matching the "pay for usage" requirement) — current models span roughly $1–$25 per million tokens depending on tier, all with either 1M or 200K token context windows (comfortably fitting a full 10-K without chunking), and prompt caching can cut the cost of re-querying the same filing text across multiple checks. This is a data point for later, not a locked-in decision.
 
 ### Phase 5 — Signal engine
 
@@ -131,9 +143,11 @@ The dashboard's "current positions" prefer the latest `PositionSnapshot` per `(a
 
 `ImportBatch` exists so a re-uploaded file is tracked, but dedup itself happens at the transaction level, not the batch level: each `Transaction` carries the broker's stable id (`brokerRef` — `transaction_id` for trades and cash in/outs) and a new row is only inserted if no existing `Transaction` for that account already has that `brokerRef`. This means a statement whose period partially overlaps a previous import still ingests cleanly — only the genuinely-new transactions get inserted, not the whole batch rejected or the whole batch re-inserted.
 
-Any new v2 tables/fields get added here as they're designed, rather than bolted onto the v1 shape without review. Two are already planned but not yet implemented — full finalized shape in §1:
+Any new v2 tables/fields get added here as they're designed, rather than bolted onto the v1 shape without review. These are already planned but not yet implemented — full detail in §1:
 - `GroupRule` gains `type` (`'allocation'|'metric'`) and `scope` (`'group'|'position'`, allocation-only) columns; `FrameworkGroup.targetAllocationMin`/`targetAllocationMax` are removed, migrated into `type='allocation', scope='group'` rows.
 - A new `Thesis` model keyed to `Instrument` (§1 Phase 2).
+- A new `edgarFinancialsTrend`-style `metricKey` flows through the existing `MetricValue` table (§1 Phase 3a) — no new table; only the computed composite verdict is stored, never the underlying financial figures.
+- A small new pointer per `Instrument` tracking the last-checked EDGAR filing (date/accession number only) so the manual "check for updates" action (§1 Phase 3) can cheaply tell whether there's anything new before doing real work — exact shape (new column on `Instrument` vs. a tiny separate table) TBD at implementation.
 
 ## 4. Broker import pipeline
 
@@ -255,8 +269,8 @@ next-intl with English + Ukrainian locales, wired up from the start in Phase 0 �
 
 - **Phase 1** — Framework rule types: unify allocation rules (group- and position-scoped min/max) and metric rules into one rules table with a `type` discriminator.
 - **Phase 2** — Thesis: free-text investment thesis per `Instrument`, shared across frameworks.
-- **Phase 3** — SEC EDGAR report parsing: pull + parse each portfolio company's latest filing into a summary. Feasibility TBD.
-- **Phase 4** — AI thesis-vs-report analysis: assess whether a thesis still holds against Phase 3's summary. Feasibility TBD, depends on Phase 3.
+- **Phase 3** — SEC EDGAR integration: a manual, per-position, new-filing-gated check with two parts — a structured-data financials trend verdict (3a), and raw filing text for Phase 4 (3b). Feasible; see §1 for the researched details.
+- **Phase 4** — AI thesis-vs-report analysis: assess whether a thesis still holds against Phase 3b's filing text. AI provider/model choice deferred to when this phase starts.
 - **Phase 5** — Signal engine: combine thesis/allocation/metric sub-signals into one per-position signal with a visible breakdown.
 
 Backlog, not currently scheduled (carried from v1's Phase 6, see §1): PDF/Excel/XML parsing for Freedom Finance, Interactive Brokers import, remote deployment + auth.
@@ -280,6 +294,11 @@ Carried over from v1 (still in effect):
 
 New v2 decisions:
 
+- **SEC EDGAR access**: `data.sec.gov` REST APIs, no API key — just a descriptive `User-Agent` header and staying under 10 req/sec (§1 Phase 3).
+- **EDGAR checks are manual and new-filing-gated**: no scheduled/automatic polling. Triggered per-company by the user; the action first checks whether a newer filing exists than the last one checked (via a small stored pointer — date/accession number only) before doing any real fetch/compute work (§1 Phase 3).
+- **Financials trend verdict is a single composite, not per-metric**: one improving/flat/deteriorating flag from a small fixed set of core line items (revenue, net income) — not a breakdown of individual growth metrics. If it's bad, the follow-up is manual (you check the filing yourself), not a deeper automated diagnosis (§1 Phase 3a).
+- **No raw financials storage**: EDGAR's underlying dollar figures are never persisted — only the computed composite verdict is stored, reusing the existing `MetricValue` table/mechanism from Phase 1 rather than a new table (§1 Phase 3a).
+- **AI provider/model for Phase 4 is deliberately undecided**: request shape is similar enough across providers that this isn't a blocking architectural choice now; revisit when Phase 4 starts (§1 Phase 4).
 - **Thesis scope**: one thesis per `Instrument`, shared across every framework — not per (Instrument, Framework) pair (§1 Phase 2).
 - **Rule type model**: allocation and metric rules unify into one rules table with a `type` discriminator, rather than keeping allocation bounds on `FrameworkGroup` separate from a metric-only rules table (§1 Phase 1).
 - **Rule types are hardcoded, rule instances aren't**: `'allocation' | 'metric'` is a fixed enum; individual rules of either type remain fully user-managed via CRUD, consistent with v1's existing "nothing hardcoded" principle for rule content.
@@ -290,7 +309,9 @@ New v2 decisions:
 
 ## 10. Still open
 
-- **SEC EDGAR feasibility** (§1 Phase 3): API shape, how consistent filing structure actually is across companies/sectors, what's mechanically extractable vs. needs AI/human reading. Needs a dedicated feasibility discussion before this phase is scoped in detail.
-- **AI thesis-vs-report analysis feasibility** (§1 Phase 4): depends on Phase 3 landing first; likely the highest-uncertainty phase in the v2 roadmap. Needs its own feasibility discussion.
+- **Unified rules table schema — exact column semantics** (§1 Phase 1): finalized shape is in §1/§3; fine-grained validation rules (e.g. exact DB-level enforcement of which columns are required per `type`) are an implementation detail for when Phase 1 starts.
+- **EDGAR financials-trend specifics** (§1 Phase 3a): exact core line items beyond revenue/net income, and the precise thresholds for "improving/flat/deteriorating," are implementation details to settle when this phase starts — the composite-verdict shape and no-raw-storage principle are decided, the numbers aren't.
+- **Last-checked-filing pointer shape** (§3, §1 Phase 3): new column on `Instrument` vs. a small separate table — TBD at implementation.
+- **AI provider/model for Phase 4** (§1 Phase 4): deliberately deferred — see decisions log.
 - **Signal combination logic** (§1 Phase 5): how the three sub-signals (thesis/allocation/metric) combine into one overall signal — draft example levels exist, but no combination rule yet.
 - *(v1's one open item — Freedom Finance `market_value` vs `posval`/`mval` field mapping — was resolved during the Phase 1 build; see §4.)*
