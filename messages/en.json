@@ -7,6 +7,7 @@
     "importLink": "Import",
     "frameworksLink": "Frameworks",
     "metricsLink": "Metrics",
+    "thesisLink": "Thesis",
     "languageSwitcherLabel": "Switch language"
   },
   "dashboardPage": {
@@ -135,6 +136,13 @@
     "asOfDateLabel": "As of date",
     "saveButton": "Save"
   },
+  "thesisPage": {
+    "title": "Thesis",
+    "description": "Your investment thesis for each company — why you believe it will go up. Shared across every framework.",
+    "noPositions": "No positions yet — import a statement first.",
+    "contentLabel": "Thesis",
+    "saveButton": "Save"
+  },
   "errors": {
     "invalidFile": "Couldn't read this file as a Freedom Finance JSON statement.",
     "genericImportError": "Something went wrong while importing this statement.",
@@ -165,6 +173,9 @@
       "metricKeyRequired": "Metric key is required.",
       "metricValueMustBeNumber": "Metric value must be a number.",
       "metricAsOfDateInvalid": "That's not a valid date.",
+      "generic": "Something went wrong."
+    },
+    "thesis": {
       "generic": "Something went wrong."
     }
   }

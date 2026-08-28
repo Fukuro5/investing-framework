@@ -50,6 +50,7 @@ model Instrument {
   metricValues      MetricValue[]
   groupAssignments  InstrumentGroupAssignment[]
   signals           Signal[]
+  thesis            Thesis?
 }
 
 // One row per uploaded broker statement. Dedup happens at the Transaction
@@ -230,4 +231,14 @@ model Signal {
   evaluatedAt  DateTime   @default(now())
   status       String
   message      String?
+}
+
+// One thesis per Instrument, shared across every framework — not
+// versioned, just editable in place (PLANNING.md §1 Phase 2).
+model Thesis {
+  id           String     @id @default(cuid())
+  instrumentId String     @unique
+  instrument   Instrument @relation(fields: [instrumentId], references: [id])
+  content      String
+  updatedAt    DateTime   @updatedAt
 }

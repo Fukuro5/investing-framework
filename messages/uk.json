@@ -7,6 +7,7 @@
     "importLink": "Імпорт",
     "frameworksLink": "Фреймворки",
     "metricsLink": "Метрики",
+    "thesisLink": "Теза",
     "languageSwitcherLabel": "Змінити мову"
   },
   "dashboardPage": {
@@ -135,6 +136,13 @@
     "asOfDateLabel": "Дата станом на",
     "saveButton": "Зберегти"
   },
+  "thesisPage": {
+    "title": "Теза",
+    "description": "Ваша інвестиційна теза щодо кожної компанії — чому ви вважаєте, що вона зростатиме. Спільна для всіх фреймворків.",
+    "noPositions": "Поки немає позицій — спочатку імпортуйте звіт.",
+    "contentLabel": "Теза",
+    "saveButton": "Зберегти"
+  },
   "errors": {
     "invalidFile": "Не вдалося прочитати цей файл як JSON-звіт Freedom Finance.",
     "genericImportError": "Під час імпорту звіту сталася помилка.",
@@ -165,6 +173,9 @@
       "metricKeyRequired": "Потрібно вказати метрику.",
       "metricValueMustBeNumber": "Значення метрики має бути числом.",
       "metricAsOfDateInvalid": "Це не дійсна дата.",
+      "generic": "Щось пішло не так."
+    },
+    "thesis": {
       "generic": "Щось пішло не так."
     }
   }
