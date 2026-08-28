@@ -60,13 +60,26 @@ Goal: send Phase 2's thesis + Phase 3b's raw filing text to an AI model with a p
 
 ### Phase 5 — Signal engine
 
-Combines the outputs of the previous phases into one per-position signal, with a visible breakdown of why it fired. Your working draft for the three inputs (not finalized — the combination logic into a single overall signal is still open):
+Combines the outputs of the previous phases into one per-position signal, reusing v1's existing `trim`/`buy more`/`sell`/`hold` badge vocabulary rather than inventing new signal types — plus a visible breakdown of why it fired.
 
-1. **Thesis-based** (Phase 4 output): thesis broken (bad) → partially holding (moderate) → holding strong (good).
-2. **Allocation-based** (Phase 1 allocation rules): position over max (trim), position under min (check thesis/metrics), group itself outside its min/max band (check the group's positions for the anomaly).
-3. **Metric-based** (Phase 1 metric rules): underperforming on 1–2 metrics (moderate), underperforming on 3+ (bad), performing well (good).
+**The three inputs sit on two different axes, not one**, which is why they don't combine as a flat worst-of-three vote:
 
-Open question for when this phase is scoped: how the three sub-signals combine into one overall signal (e.g. worst-case wins, weighted, explicit rule matrix), and what "see why" looks like in the UI (most likely a breakdown per input).
+1. **Thesis severity** (Phase 4 output): broken (bad) → partially holding (moderate) → holding strong (good).
+2. **Metric severity** (Phase 1 metric rules): underperforming on 3+ metrics (bad), 1–2 (moderate), none (good).
+3. **Allocation sizing action** (Phase 1 allocation rules, position-scope): over max, under min, or in-band. This is a *sizing* signal, not a *health* signal — being over-allocated because a position grew is often good news that just needs rebalancing, not a sign something's wrong. The **group-level** allocation case ("the group itself is outside its band") is about the whole group, not one stock — it surfaces as its own flag on the group view and does not feed into any individual position's badge.
+
+**Combination logic (two-layer):**
+
+- **Health** = worst of (thesis severity, metric severity). Either one being bad makes Health bad; both need to be good for Health to be good. (A simple worst-of-two default — could move to a weighted rule later if worst-of-two proves too blunt in practice, but that's a tuning detail, not a blocker.)
+- **Final badge** = Health dominates when bad (a broken thesis/metrics means "get out" regardless of current position size); otherwise the badge follows the allocation sizing action:
+
+  | Health \ Allocation | over-allocated | in-band | under-allocated |
+  |---|---|---|---|
+  | **bad** | Sell | Sell | Sell |
+  | **moderate** | Trim | Hold | Hold |
+  | **good** | Trim | Hold | Buy more |
+
+**"See why"**: for any badge, show the three raw inputs that fed it — thesis verdict + AI explanation, which metrics are underperforming (if any), and current allocation % vs. the position's band — regardless of which layer (Health or Allocation) actually decided the badge.
 
 ### Backlog — carried from v1, not currently scheduled
 
@@ -271,7 +284,7 @@ next-intl with English + Ukrainian locales, wired up from the start in Phase 0 �
 - **Phase 2** — Thesis: free-text investment thesis per `Instrument`, shared across frameworks.
 - **Phase 3** — SEC EDGAR integration: a manual, per-position, new-filing-gated check with two parts — a structured-data financials trend verdict (3a), and raw filing text for Phase 4 (3b). Feasible; see §1 for the researched details.
 - **Phase 4** — AI thesis-vs-report analysis: assess whether a thesis still holds against Phase 3b's filing text. AI provider/model choice deferred to when this phase starts.
-- **Phase 5** — Signal engine: combine thesis/allocation/metric sub-signals into one per-position signal with a visible breakdown.
+- **Phase 5** — Signal engine: Health (worst of thesis/metric severity) × allocation sizing action → final trim/buy-more/sell/hold badge via a decision matrix, plus a per-input "why" breakdown. Group-level allocation anomalies surface separately, not folded into position badges.
 
 Backlog, not currently scheduled (carried from v1's Phase 6, see §1): PDF/Excel/XML parsing for Freedom Finance, Interactive Brokers import, remote deployment + auth.
 
@@ -304,6 +317,8 @@ New v2 decisions:
 - **Rule types are hardcoded, rule instances aren't**: `'allocation' | 'metric'` is a fixed enum; individual rules of either type remain fully user-managed via CRUD, consistent with v1's existing "nothing hardcoded" principle for rule content.
 - **Position-scoped allocation rule = uniform band, not a per-instrument override**: `type='allocation', scope='position'` applies the same min/max to every position in a group (e.g. "no position in Core may exceed 15%") — no `instrumentId` on the rule. A per-stock exception isn't in scope for Phase 1.
 - **Group-level allocation bands fully migrate off `FrameworkGroup`**: `targetAllocationMin`/`targetAllocationMax` columns are removed, not kept alongside the new rules table — one query path for allocation info, at the cost of updating `get-group-allocations.ts`/`validate-groups-total.ts`/group CRUD to read from `GroupRule` instead of columns.
+- **Signal combination is two-layer, not flat worst-of-three**: thesis and metric severity combine into one Health score (worst of the two); Health then dominates the final badge when bad, otherwise the badge follows the allocation sizing action via a decision matrix — because allocation is a sizing signal, not a health signal, and treating "over-allocated because it grew" the same as a fundamental problem would be wrong (§1 Phase 5).
+- **Group-level allocation anomalies are a separate flag, not folded into position badges**: "the group itself is outside its band" is shown once per group (on the group view), independent of any individual position's signal (§1 Phase 5).
 - **Signal-role metric rules un-deferred in Phase 1**: v1 shipped only `role='classification'` (hardcoded in `createRule.ts`, signal role deliberately deferred). Phase 1 lifts that restriction since Phase 5's metric-based sub-signal needs signal-role rules to evaluate against — done alongside the `type` column rather than punted to Phase 5.
 - **v2 Phase 6 backlog demoted**: v1's Phase 6 items (IBKR, PDF/Excel/XML parsing, deployment+auth) are *not* v2's Phase 1 — they sit in an unscheduled backlog behind the Signals roadmap (§1, §8).
 
@@ -313,5 +328,5 @@ New v2 decisions:
 - **EDGAR financials-trend specifics** (§1 Phase 3a): exact core line items beyond revenue/net income, and the precise thresholds for "improving/flat/deteriorating," are implementation details to settle when this phase starts — the composite-verdict shape and no-raw-storage principle are decided, the numbers aren't.
 - **Last-checked-filing pointer shape** (§3, §1 Phase 3): new column on `Instrument` vs. a small separate table — TBD at implementation.
 - **AI provider/model for Phase 4** (§1 Phase 4): deliberately deferred — see decisions log.
-- **Signal combination logic** (§1 Phase 5): how the three sub-signals (thesis/allocation/metric) combine into one overall signal — draft example levels exist, but no combination rule yet.
+- **Health combination rule may need tuning** (§1 Phase 5): worst-of-two (thesis, metric) is the decided default; if that proves too blunt in practice (one weak input always dragging Health down even when the other is strongly positive), a weighted rule is the fallback — revisit once real signals are running, not a blocker now.
 - *(v1's one open item — Freedom Finance `market_value` vs `posval`/`mval` field mapping — was resolved during the Phase 1 build; see §4.)*
