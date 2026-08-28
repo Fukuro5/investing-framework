@@ -17,10 +17,22 @@ Rules need to be distinguishable by type so the Phase 5 signal engine can reason
 - **Allocation rules** — min/max allocation % for a group as a whole, and min/max allocation % for an individual position within that group.
 - **Metric rules** — the existing shape (`metricKey`/`operator`/`threshold`, e.g. `roic > 10`).
 
-Decision: unify both into one rules table rather than keeping allocation limits on `FrameworkGroup` (as today) and metric rules in a separate table. A `type` discriminator (`'allocation' | 'metric'`) distinguishes them, so the signal engine has one query path instead of two. This means:
-- `FrameworkGroup.targetAllocationMin`/`targetAllocationMax` (existing group-level allocation band) migrates into the unified table as a group-scoped allocation rule, rather than staying a column on `FrameworkGroup`.
-- A new position-scoped allocation rule (min/max % for one instrument within a group) is added to the same table.
-- Exact column shape (nullable fields for allocation's min/max vs. metric's operator/threshold, how scope — group vs. position — is represented) is a schema-design detail to finalize when this phase starts, not decided yet.
+Decision: unify both into one rules table rather than keeping allocation limits on `FrameworkGroup` (as today) and metric rules in a separate table. A `type` discriminator (`'allocation' | 'metric'`) distinguishes them, so the signal engine has one query path instead of two.
+
+**Finalized schema** (extends the existing `GroupRule` model rather than a new one):
+
+```
+GroupRule   id, groupId, type ('allocation'|'metric'), role ('classification'|'signal'),
+            scope ('group'|'position' — only for type='allocation', null for type='metric'),
+            minAllocation, maxAllocation (only for type='allocation', null for type='metric'),
+            metricKey, operator, threshold (only for type='metric', null for type='allocation'),
+            isActive
+```
+
+- `type='allocation', scope='group'` — one required rule per group, replacing `FrameworkGroup.targetAllocationMin`/`targetAllocationMax` entirely (migrated off those columns, not kept alongside them). The "a framework's groups' bands must sum to 100%" check (`validateGroupsTotal`, §9) moves from reading columns to querying each group's `scope='group'` allocation rule.
+- `type='allocation', scope='position'` — optional: one uniform min/max band applied to every position currently in that group (e.g. "no position in Core may exceed 15%"). Not a per-instrument override — no `instrumentId` on the rule.
+- `type='metric'` — same shape as today (`metricKey`/`operator`/`threshold`), but `role` can now genuinely be `'signal'` as well as `'classification'`: `createRule.ts` currently hardcodes every new rule to `role: "classification"` (signal-role rules were deliberately deferred in v1 — "not enough reliable metric data yet"). Un-deferring that is part of this phase, since Phase 5's metric-based sub-signal needs signal-role rules to evaluate against.
+- For `type='allocation'`, `role` is always `'signal'` — allocation never decides group membership, only what happens once a position is already in the group.
 
 ### Phase 2 — Thesis
 
@@ -119,7 +131,9 @@ The dashboard's "current positions" prefer the latest `PositionSnapshot` per `(a
 
 `ImportBatch` exists so a re-uploaded file is tracked, but dedup itself happens at the transaction level, not the batch level: each `Transaction` carries the broker's stable id (`brokerRef` — `transaction_id` for trades and cash in/outs) and a new row is only inserted if no existing `Transaction` for that account already has that `brokerRef`. This means a statement whose period partially overlaps a previous import still ingests cleanly — only the genuinely-new transactions get inserted, not the whole batch rejected or the whole batch re-inserted.
 
-Any new v2 tables/fields get added here as they're designed, rather than bolted onto the v1 shape without review. Two are already planned but not yet implemented — see §1: a `type` discriminator unifying `GroupRule` (metric rules) with allocation rules (currently split across `FrameworkGroup.targetAllocationMin`/`Max`), and a new `Thesis` model keyed to `Instrument`.
+Any new v2 tables/fields get added here as they're designed, rather than bolted onto the v1 shape without review. Two are already planned but not yet implemented — full finalized shape in §1:
+- `GroupRule` gains `type` (`'allocation'|'metric'`) and `scope` (`'group'|'position'`, allocation-only) columns; `FrameworkGroup.targetAllocationMin`/`targetAllocationMax` are removed, migrated into `type='allocation', scope='group'` rows.
+- A new `Thesis` model keyed to `Instrument` (§1 Phase 2).
 
 ## 4. Broker import pipeline
 
@@ -191,7 +205,7 @@ Evaluation runs on demand (after an import, a price/metric refresh, or a framewo
 
 Framework/group/rule definitions are fully user-managed via the CRUD UI (`app/[locale]/frameworks`) — nothing hardcoded. This mechanism is v1-complete.
 
-**Planned for v2 (§1 Phase 1, not yet implemented)**: rules will also carry a `type` discriminator (`'allocation' | 'metric'`) — the two types are hardcoded, but every rule instance within a type stays fully user-managed, same as today. Allocation rules subsume what `FrameworkGroup.targetAllocationMin`/`Max` does today (group-scoped) and add a new position-scoped variant (min/max % for one instrument within a group); metric rules keep their current shape. This is purely about categorizing rules so the Phase 5 signal engine can tell them apart — it doesn't change classification/signal role semantics above.
+**Planned for v2 (§1 Phase 1, finalized schema, not yet implemented)**: `GroupRule` gains a `type` discriminator (`'allocation' | 'metric'`) plus a `scope` field (`'group' | 'position'`, allocation-only) — the type/scope values themselves are hardcoded, but every rule instance stays fully user-managed via CRUD, same as today. `FrameworkGroup.targetAllocationMin`/`Max` are removed and become each group's required `type='allocation', scope='group'` rule; a new optional `type='allocation', scope='position'` rule adds a uniform min/max band applied to every position in the group (not a per-instrument override). Metric rules keep their current shape, but signal-role metric rules (currently hardcoded off in `createRule.ts`) get un-deferred as part of this phase, since Phase 5 needs them.
 
 ## 6. Market data integration
 
@@ -269,11 +283,13 @@ New v2 decisions:
 - **Thesis scope**: one thesis per `Instrument`, shared across every framework — not per (Instrument, Framework) pair (§1 Phase 2).
 - **Rule type model**: allocation and metric rules unify into one rules table with a `type` discriminator, rather than keeping allocation bounds on `FrameworkGroup` separate from a metric-only rules table (§1 Phase 1).
 - **Rule types are hardcoded, rule instances aren't**: `'allocation' | 'metric'` is a fixed enum; individual rules of either type remain fully user-managed via CRUD, consistent with v1's existing "nothing hardcoded" principle for rule content.
+- **Position-scoped allocation rule = uniform band, not a per-instrument override**: `type='allocation', scope='position'` applies the same min/max to every position in a group (e.g. "no position in Core may exceed 15%") — no `instrumentId` on the rule. A per-stock exception isn't in scope for Phase 1.
+- **Group-level allocation bands fully migrate off `FrameworkGroup`**: `targetAllocationMin`/`targetAllocationMax` columns are removed, not kept alongside the new rules table — one query path for allocation info, at the cost of updating `get-group-allocations.ts`/`validate-groups-total.ts`/group CRUD to read from `GroupRule` instead of columns.
+- **Signal-role metric rules un-deferred in Phase 1**: v1 shipped only `role='classification'` (hardcoded in `createRule.ts`, signal role deliberately deferred). Phase 1 lifts that restriction since Phase 5's metric-based sub-signal needs signal-role rules to evaluate against — done alongside the `type` column rather than punted to Phase 5.
 - **v2 Phase 6 backlog demoted**: v1's Phase 6 items (IBKR, PDF/Excel/XML parsing, deployment+auth) are *not* v2's Phase 1 — they sit in an unscheduled backlog behind the Signals roadmap (§1, §8).
 
 ## 10. Still open
 
-- **Unified rules table schema** (§1 Phase 1): exact column shape — nullable fields for allocation's min/max vs. metric's operator/threshold, how scope (group vs. position) is represented — not decided yet, to finalize when this phase starts.
 - **SEC EDGAR feasibility** (§1 Phase 3): API shape, how consistent filing structure actually is across companies/sectors, what's mechanically extractable vs. needs AI/human reading. Needs a dedicated feasibility discussion before this phase is scoped in detail.
 - **AI thesis-vs-report analysis feasibility** (§1 Phase 4): depends on Phase 3 landing first; likely the highest-uncertainty phase in the v2 roadmap. Needs its own feasibility discussion.
 - **Signal combination logic** (§1 Phase 5): how the three sub-signals (thesis/allocation/metric) combine into one overall signal — draft example levels exist, but no combination rule yet.
