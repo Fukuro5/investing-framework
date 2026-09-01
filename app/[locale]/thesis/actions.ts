@@ -4,6 +4,7 @@ import type { PrismaClient } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { resolveThesisErrorMessage } from "@/lib/thesis/resolve-error-message";
 import { upsertThesis } from "@/lib/thesis/upsert-thesis";
+import type { ThesisCheckResult } from "@/lib/edgar/assess-thesis-against-filing";
 import { checkInstrumentForUpdates } from "@/lib/edgar/check-instrument-for-updates";
 import { getConfiguredUserAgent } from "@/lib/edgar/get-configured-user-agent";
 import { resolveEdgarErrorMessage } from "@/lib/edgar/resolve-error-message";
@@ -34,6 +35,7 @@ export const upsertThesisAction = async (
 export interface CheckEdgarUpdatesState {
   status: "idle" | "upToDate" | "updated" | "error";
   verdict?: FinancialsTrendVerdict;
+  thesisCheck?: ThesisCheckResult;
   errorMessage?: string;
 }
 
@@ -49,7 +51,9 @@ export const checkEdgarUpdatesAction = async (
     const instrumentId = String(formData.get("instrumentId") ?? "");
     const result = await checkInstrumentForUpdates(instrumentId, userAgent ?? getConfiguredUserAgent(), db);
 
-    return result.status === "upToDate" ? { status: "upToDate" } : { status: "updated", verdict: result.verdict };
+    return result.status === "upToDate"
+      ? { status: "upToDate" }
+      : { status: "updated", verdict: result.verdict, thesisCheck: result.thesisCheck };
   } catch (error) {
     return { status: "error", errorMessage: await resolveEdgarErrorMessage(error) };
   }

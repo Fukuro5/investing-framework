@@ -148,7 +148,14 @@
     "edgarUpToDate": "Already up to date since your last check.",
     "edgarVerdictImproving": "Financials trend: improving",
     "edgarVerdictFlat": "Financials trend: flat",
-    "edgarVerdictDeteriorating": "Financials trend: deteriorating"
+    "edgarVerdictDeteriorating": "Financials trend: deteriorating",
+    "thesisVerdictHolding": "Thesis check: still holds",
+    "thesisVerdictPartiallyWeakening": "Thesis check: partially weakening",
+    "thesisVerdictBroken": "Thesis check: broken",
+    "thesisCheckSkippedNoThesis": "No thesis written yet — add one to enable the AI thesis check.",
+    "thesisCheckMissingApiKey": "Set OPENAI_API_KEY in .env.local to enable the AI thesis check.",
+    "thesisCheckRequestFailed": "The AI thesis check failed — try again later.",
+    "thesisCheckInvalidResponse": "The AI thesis check returned an unexpected response — try again later."
   },
   "errors": {
     "invalidFile": "Couldn't read this file as a Freedom Finance JSON statement.",

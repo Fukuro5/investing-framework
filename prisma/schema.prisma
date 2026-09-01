@@ -60,6 +60,7 @@ model Instrument {
   groupAssignments  InstrumentGroupAssignment[]
   signals           Signal[]
   thesis            Thesis?
+  thesisVerdicts    ThesisVerdict[]
 }
 
 // One row per uploaded broker statement. Dedup happens at the Transaction
@@ -250,4 +251,22 @@ model Thesis {
   instrument   Instrument @relation(fields: [instrumentId], references: [id])
   content      String
   updatedAt    DateTime   @updatedAt
+}
+
+// AI thesis-vs-filing verdicts (PLANNING.md §1 Phase 4). One row per
+// checked filing — upserted on (instrumentId, accessionNumber) for
+// idempotency; history accumulates naturally as new filings get checked.
+// "Latest" is resolved the same way as resolveMetricValue (asOfDate desc,
+// fetchedAt desc) — see lib/thesis/get-latest-thesis-verdict.ts.
+model ThesisVerdict {
+  id              String     @id @default(cuid())
+  instrumentId    String
+  instrument      Instrument @relation(fields: [instrumentId], references: [id])
+  verdict         String     // "holding" | "partiallyWeakening" | "broken" — lib/ai/types.ts
+  explanation     String
+  accessionNumber String
+  asOfDate        DateTime
+  fetchedAt       DateTime   @default(now())
+
+  @@unique([instrumentId, accessionNumber])
 }

@@ -21,7 +21,7 @@ describe("getInstrumentEdgarStatus", () => {
   it("returns nulls when the instrument has never been checked", async () => {
     const status = await getInstrumentEdgarStatus(instrumentId, testDb.prisma);
 
-    expect(status).toEqual({ lastCheckedFilingDate: null, verdict: null });
+    expect(status).toEqual({ lastCheckedFilingDate: null, verdict: null, thesisVerdict: null, thesisExplanation: null });
   });
 
   it("returns the last-checked date and the verdict label mapped from the latest trend metric", async () => {
@@ -32,7 +32,12 @@ describe("getInstrumentEdgarStatus", () => {
 
     const status = await getInstrumentEdgarStatus(instrumentId, testDb.prisma);
 
-    expect(status).toEqual({ lastCheckedFilingDate: new Date("2026-07-31"), verdict: "improving" });
+    expect(status).toEqual({
+      lastCheckedFilingDate: new Date("2026-07-31"),
+      verdict: "improving",
+      thesisVerdict: null,
+      thesisExplanation: null,
+    });
   });
 
   it("prefers a fresher manual override over an older api verdict", async () => {

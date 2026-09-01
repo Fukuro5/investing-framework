@@ -37,7 +37,14 @@ const ThesisPage = async () => {
               <div className="mt-4 border-t border-black/10 pt-4 dark:border-white/10">
                 <EdgarCheckButton
                   instrumentId={position.instrumentId}
-                  initialStatus={edgarStatusByInstrumentId.get(position.instrumentId) ?? { lastCheckedFilingDate: null, verdict: null }}
+                  initialStatus={
+                    edgarStatusByInstrumentId.get(position.instrumentId) ?? {
+                      lastCheckedFilingDate: null,
+                      verdict: null,
+                      thesisVerdict: null,
+                      thesisExplanation: null,
+                    }
+                  }
                 />
               </div>
             </li>

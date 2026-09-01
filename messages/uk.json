@@ -148,7 +148,14 @@
     "edgarUpToDate": "Уже актуально з часу останньої перевірки.",
     "edgarVerdictImproving": "Тренд фінансів: покращується",
     "edgarVerdictFlat": "Тренд фінансів: без змін",
-    "edgarVerdictDeteriorating": "Тренд фінансів: погіршується"
+    "edgarVerdictDeteriorating": "Тренд фінансів: погіршується",
+    "thesisVerdictHolding": "Перевірка тези: теза все ще діє",
+    "thesisVerdictPartiallyWeakening": "Перевірка тези: частково слабшає",
+    "thesisVerdictBroken": "Перевірка тези: тезу порушено",
+    "thesisCheckSkippedNoThesis": "Тезу ще не написано — додайте її, щоб увімкнути AI-перевірку тези.",
+    "thesisCheckMissingApiKey": "Додайте OPENAI_API_KEY у .env.local, щоб увімкнути AI-перевірку тези.",
+    "thesisCheckRequestFailed": "AI-перевірка тези не вдалася — спробуйте пізніше.",
+    "thesisCheckInvalidResponse": "AI-перевірка тези повернула неочікувану відповідь — спробуйте пізніше."
   },
   "errors": {
     "invalidFile": "Не вдалося прочитати цей файл як JSON-звіт Freedom Finance.",

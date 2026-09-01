@@ -1,18 +1,24 @@
 import type { PrismaClient } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { assessThesisAgainstFiling, type ThesisCheckResult } from "@/lib/edgar/assess-thesis-against-filing";
 import { resolveInstrumentCik } from "@/lib/edgar/resolve-cik";
 import { checkForNewFiling } from "@/lib/edgar/check-for-new-filing";
 import { computeFinancialsTrend, type FinancialsTrendVerdict } from "@/lib/edgar/compute-financials-trend";
 import { upsertTrendMetric } from "@/lib/edgar/upsert-trend-metric";
 import { updateCheckedPointer } from "@/lib/edgar/update-checked-pointer";
 
-export type CheckInstrumentForUpdatesResult = { status: "upToDate" } | { status: "updated"; verdict: FinancialsTrendVerdict };
+export type CheckInstrumentForUpdatesResult =
+  | { status: "upToDate" }
+  | { status: "updated"; verdict: FinancialsTrendVerdict; thesisCheck: ThesisCheckResult };
 
 // The top-level entry point the "check for updates" Server Action calls —
 // implements PLANNING.md §1 Phase 3's full manual, per-company,
 // new-filing-gated flow: resolve CIK once (cached), ask EDGAR whether
 // there's anything new at all, and only do the real fetch/compute work
-// (3a's financials trend) if there is.
+// (3a's financials trend, Phase 4's AI thesis check) if there is. The
+// thesis check never throws (see assess-thesis-against-filing.ts), so the
+// pointer update below always reflects that the filing itself was checked,
+// regardless of whether the AI check succeeded.
 export const checkInstrumentForUpdates = async (
   instrumentId: string,
   userAgent: string,
@@ -26,8 +32,9 @@ export const checkInstrumentForUpdates = async (
   }
 
   const trend = await computeFinancialsTrend(cik, newFilingCheck.filing, userAgent);
+  const thesisCheck = await assessThesisAgainstFiling(instrumentId, cik, newFilingCheck.filing, userAgent, db);
   await upsertTrendMetric(instrumentId, trend, db);
   await updateCheckedPointer(instrumentId, newFilingCheck.filing, db);
 
-  return { status: "updated", verdict: trend.verdict };
+  return { status: "updated", verdict: trend.verdict, thesisCheck };
 };
