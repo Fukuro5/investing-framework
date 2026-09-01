@@ -44,6 +44,15 @@ model Instrument {
   currency  String
   exchange  String?
 
+  // SEC EDGAR tracking (PLANNING.md §1 Phase 3): cik is resolved once via
+  // the ticker->CIK lookup and cached here so it's never re-fetched; the
+  // last-checked fields are the small pointer the manual "check for
+  // updates" trigger compares against before doing any real fetch/compute
+  // work (§1 Phase 3's new-filing-gated trigger model).
+  edgarCik                   String?
+  lastCheckedFilingDate      DateTime?
+  lastCheckedAccessionNumber String?
+
   transactions      Transaction[]
   positionSnapshots PositionSnapshot[]
   priceSnapshots    PriceSnapshot[]

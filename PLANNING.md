@@ -160,7 +160,7 @@ Any new v2 tables/fields get added here as they're designed, rather than bolted 
 - `GroupRule` gains `type` (`'allocation'|'metric'`) and `scope` (`'group'|'position'`, allocation-only) columns; `FrameworkGroup.targetAllocationMin`/`targetAllocationMax` are removed, migrated into `type='allocation', scope='group'` rows.
 - A new `Thesis` model keyed to `Instrument` (§1 Phase 2).
 - A new `edgarFinancialsTrend`-style `metricKey` flows through the existing `MetricValue` table (§1 Phase 3a) — no new table; only the computed composite verdict is stored, never the underlying financial figures.
-- A small new pointer per `Instrument` tracking the last-checked EDGAR filing (date/accession number only) so the manual "check for updates" action (§1 Phase 3) can cheaply tell whether there's anything new before doing real work — exact shape (new column on `Instrument` vs. a tiny separate table) TBD at implementation.
+- A small new pointer per `Instrument` tracking the last-checked EDGAR filing (date/accession number only) so the manual "check for updates" action (§1 Phase 3) can cheaply tell whether there's anything new before doing real work. **Resolved and implemented**: `edgarCik`, `lastCheckedFilingDate`, `lastCheckedAccessionNumber` — nullable columns directly on `Instrument`, not a separate table. `edgarCik` is resolved once via SEC's public ticker→CIK file and cached there permanently.
 
 ## 4. Broker import pipeline
 
@@ -321,12 +321,15 @@ New v2 decisions:
 - **Group-level allocation anomalies are a separate flag, not folded into position badges**: "the group itself is outside its band" is shown once per group (on the group view), independent of any individual position's signal (§1 Phase 5).
 - **Signal-role metric rules un-deferred in Phase 1**: v1 shipped only `role='classification'` (hardcoded in `createRule.ts`, signal role deliberately deferred). Phase 1 lifts that restriction since Phase 5's metric-based sub-signal needs signal-role rules to evaluate against — done alongside the `type` column rather than punted to Phase 5.
 - **v2 Phase 6 backlog demoted**: v1's Phase 6 items (IBKR, PDF/Excel/XML parsing, deployment+auth) are *not* v2's Phase 1 — they sit in an unscheduled backlog behind the Signals roadmap (§1, §8).
+- **EDGAR CIK resolution**: auto-looked-up via SEC's public ticker→CIK file (`sec.gov/files/company_tickers.json`) on first check, then cached permanently on `Instrument.edgarCik` — never re-fetched (§1 Phase 3, §3).
+- **Financials trend default thresholds implemented**: ±5% YoY on revenue and net income, using the same fiscal-period pair reported by the filing itself (current vs. prior-year comparative, matched by duration and end date within the same accession number) — both up → improving, both down → deteriorating, otherwise flat. Tunable later if it proves too coarse (§1 Phase 3a).
+- **Filing text is stripped to plain text (3b)**, using the `html-to-text` dependency — not a hard requirement for an AI model to read the filing, but avoids the multiple-times-larger token count of raw SEC filing HTML (inline styles/tables/XBRL tagging) for no comprehension benefit ahead of Phase 4 (§1 Phase 3b).
+- **3a and 3b shipped together in Phase 3**, even though 3b (`lib/edgar/get-filing-text.ts`) has no caller yet — exposed as a tested utility for Phase 4 to import directly once it starts, rather than being rebuilt then.
 
 ## 10. Still open
 
 - **Unified rules table schema — exact column semantics** (§1 Phase 1): finalized shape is in §1/§3; fine-grained validation rules (e.g. exact DB-level enforcement of which columns are required per `type`) are an implementation detail for when Phase 1 starts.
-- **EDGAR financials-trend specifics** (§1 Phase 3a): exact core line items beyond revenue/net income, and the precise thresholds for "improving/flat/deteriorating," are implementation details to settle when this phase starts — the composite-verdict shape and no-raw-storage principle are decided, the numbers aren't.
-- **Last-checked-filing pointer shape** (§3, §1 Phase 3): new column on `Instrument` vs. a small separate table — TBD at implementation.
+- **EDGAR financials-trend specifics** (§1 Phase 3a): implemented with revenue + net income only, ±5% YoY threshold, worst-of-two-line-items verdict (§9) — may need retuning (different/more line items, different threshold) once real signals are running.
 - **AI provider/model for Phase 4** (§1 Phase 4): deliberately deferred — see decisions log.
 - **Health combination rule may need tuning** (§1 Phase 5): worst-of-two (thesis, metric) is the decided default; if that proves too blunt in practice (one weak input always dragging Health down even when the other is strongly positive), a weighted rule is the fallback — revisit once real signals are running, not a blocker now.
 - *(v1's one open item — Freedom Finance `market_value` vs `posval`/`mval` field mapping — was resolved during the Phase 1 build; see §4.)*

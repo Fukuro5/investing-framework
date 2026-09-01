@@ -141,7 +141,14 @@
     "description": "Your investment thesis for each company — why you believe it will go up. Shared across every framework.",
     "noPositions": "No positions yet — import a statement first.",
     "contentLabel": "Thesis",
-    "saveButton": "Save"
+    "saveButton": "Save",
+    "edgarCheckButton": "Check for updates",
+    "edgarNeverChecked": "Never checked against SEC EDGAR.",
+    "edgarLastChecked": "Last checked filing: {date}",
+    "edgarUpToDate": "Already up to date since your last check.",
+    "edgarVerdictImproving": "Financials trend: improving",
+    "edgarVerdictFlat": "Financials trend: flat",
+    "edgarVerdictDeteriorating": "Financials trend: deteriorating"
   },
   "errors": {
     "invalidFile": "Couldn't read this file as a Freedom Finance JSON statement.",
@@ -176,6 +183,14 @@
       "generic": "Something went wrong."
     },
     "thesis": {
+      "generic": "Something went wrong."
+    },
+    "edgar": {
+      "missingUserAgent": "Set SEC_EDGAR_USER_AGENT in .env.local to enable EDGAR checks.",
+      "instrumentNotFound": "Something went wrong.",
+      "cikNotFound": "Couldn't find an SEC CIK for ticker \"{ticker}\".",
+      "noTrackedFilingFound": "No 10-K/10-Q filing found for this company on EDGAR.",
+      "financialsUnavailable": "EDGAR didn't have comparable revenue/net income data for the latest filing.",
       "generic": "Something went wrong."
     }
   }

@@ -141,7 +141,14 @@
     "description": "Ваша інвестиційна теза щодо кожної компанії — чому ви вважаєте, що вона зростатиме. Спільна для всіх фреймворків.",
     "noPositions": "Поки немає позицій — спочатку імпортуйте звіт.",
     "contentLabel": "Теза",
-    "saveButton": "Зберегти"
+    "saveButton": "Зберегти",
+    "edgarCheckButton": "Перевірити оновлення",
+    "edgarNeverChecked": "Ще не перевірялося через SEC EDGAR.",
+    "edgarLastChecked": "Останній перевірений звіт: {date}",
+    "edgarUpToDate": "Уже актуально з часу останньої перевірки.",
+    "edgarVerdictImproving": "Тренд фінансів: покращується",
+    "edgarVerdictFlat": "Тренд фінансів: без змін",
+    "edgarVerdictDeteriorating": "Тренд фінансів: погіршується"
   },
   "errors": {
     "invalidFile": "Не вдалося прочитати цей файл як JSON-звіт Freedom Finance.",
@@ -176,6 +183,14 @@
       "generic": "Щось пішло не так."
     },
     "thesis": {
+      "generic": "Щось пішло не так."
+    },
+    "edgar": {
+      "missingUserAgent": "Додайте SEC_EDGAR_USER_AGENT у .env.local, щоб увімкнути перевірки EDGAR.",
+      "instrumentNotFound": "Щось пішло не так.",
+      "cikNotFound": "Не вдалося знайти CIK SEC для тікера «{ticker}».",
+      "noTrackedFilingFound": "Для цієї компанії на EDGAR не знайдено звіту 10-K/10-Q.",
+      "financialsUnavailable": "EDGAR не має порівнянних даних про виручку/чистий прибуток для останнього звіту.",
       "generic": "Щось пішло не так."
     }
   }

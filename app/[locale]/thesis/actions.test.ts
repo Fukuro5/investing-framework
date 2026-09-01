@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { upsertThesisAction, type UpsertThesisState } from "@/app/[locale]/thesis/actions";
+import { checkEdgarUpdatesAction, upsertThesisAction, type CheckEdgarUpdatesState, type UpsertThesisState } from "@/app/[locale]/thesis/actions";
 import { createTestDb, type TestDb } from "@/lib/import/ingest/__tests__/test-db";
 
 // See app/[locale]/frameworks/actions.test.ts for why this is mocked.
@@ -53,5 +53,62 @@ describe("upsertThesisAction", () => {
 
     expect(state.status).toBe("error");
     expect(state.errorMessage).toContain("errors.thesis.generic");
+  });
+});
+
+describe("checkEdgarUpdatesAction", () => {
+  const jsonResponse = (body: unknown, ok = true, status = 200) =>
+    Promise.resolve({ ok, status, json: () => Promise.resolve(body) } as Response);
+  const ACCN = "0000320193-26-000001";
+
+  beforeEach(() => {
+    vi.stubGlobal("fetch", vi.fn());
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns a translated error instead of throwing when the ticker has no SEC match", async () => {
+    vi.mocked(fetch).mockImplementation((input) => {
+      const url = String(input);
+      if (url.endsWith("/files/company_tickers.json")) return jsonResponse({});
+      throw new Error(`Unexpected EDGAR request: ${url}`);
+    });
+
+    const state = await checkEdgarUpdatesAction(
+      { status: "idle" } as CheckEdgarUpdatesState,
+      buildFormData({ instrumentId }),
+      testDb.prisma,
+      "test-agent contact@example.com",
+    );
+
+    expect(state.status).toBe("error");
+    expect(state.errorMessage).toContain("errors.edgar.cikNotFound");
+  });
+
+  it("reports up to date without touching financials when the accession number hasn't changed", async () => {
+    await testDb.prisma.instrument.update({
+      where: { id: instrumentId },
+      data: { edgarCik: "0000320193", lastCheckedAccessionNumber: ACCN },
+    });
+    vi.mocked(fetch).mockImplementation((input) => {
+      const url = String(input);
+      if (url.includes("/submissions/CIK")) {
+        return jsonResponse({
+          filings: { recent: { form: ["10-Q"], filingDate: ["2026-07-31"], accessionNumber: [ACCN], primaryDocument: ["x.htm"] } },
+        });
+      }
+      throw new Error(`Unexpected EDGAR request during an up-to-date check: ${url}`);
+    });
+
+    const state = await checkEdgarUpdatesAction(
+      { status: "idle" } as CheckEdgarUpdatesState,
+      buildFormData({ instrumentId }),
+      testDb.prisma,
+      "test-agent contact@example.com",
+    );
+
+    expect(state).toEqual({ status: "upToDate" });
   });
 });
