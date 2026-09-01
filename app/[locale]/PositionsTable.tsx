@@ -1,8 +1,14 @@
 import { useTranslations } from "next-intl";
+import { PositionSignalCell } from "@/app/[locale]/PositionSignalCell";
 import type { PositionView } from "@/lib/dashboard/types";
+import type { PositionSignalView } from "@/lib/signals/get-active-framework-position-signals";
 
 interface IPositionsTableProps {
   positions: PositionView[];
+  // null when no framework is active — the whole column is omitted rather
+  // than shown empty, matching how GroupAllocationSummary is conditionally
+  // rendered on the dashboard (PLANNING.md §1 Phase 5).
+  signals: Map<string, PositionSignalView> | null;
   locale: string;
 }
 
@@ -15,7 +21,7 @@ const formatPercent = (value: number | null, locale: string): string | null =>
 const formatDateTime = (value: Date | null, locale: string): string | null =>
   value === null ? null : new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(value);
 
-export const PositionsTable = ({ positions, locale }: IPositionsTableProps) => {
+export const PositionsTable = ({ positions, signals, locale }: IPositionsTableProps) => {
   const t = useTranslations("dashboardPage");
 
   if (positions.length === 0) {
@@ -33,7 +39,8 @@ export const PositionsTable = ({ positions, locale }: IPositionsTableProps) => {
           <th className="py-2 pr-4 font-medium">{t("columns.priceAsOf")}</th>
           <th className="py-2 pr-4 font-medium">{t("columns.marketValue")}</th>
           <th className="py-2 pr-4 font-medium">{t("columns.allocation")}</th>
-          <th className="py-2 font-medium">{t("columns.unrealizedPnl")}</th>
+          <th className={`py-2 font-medium ${signals ? "pr-4" : ""}`}>{t("columns.unrealizedPnl")}</th>
+          {signals && <th className="py-2 font-medium">{t("columns.signal")}</th>}
         </tr>
       </thead>
       <tbody>
@@ -51,7 +58,12 @@ export const PositionsTable = ({ positions, locale }: IPositionsTableProps) => {
             </td>
             <td className="py-2 pr-4">{formatMoney(position.marketValue, position.currency, locale) ?? t("unavailable")}</td>
             <td className="py-2 pr-4">{formatPercent(position.allocationPercent, locale) ?? t("unavailable")}</td>
-            <td className="py-2">{formatMoney(position.unrealizedPnl, position.currency, locale) ?? t("unavailable")}</td>
+            <td className={`py-2 ${signals ? "pr-4" : ""}`}>{formatMoney(position.unrealizedPnl, position.currency, locale) ?? t("unavailable")}</td>
+            {signals && (
+              <td className="py-2">
+                <PositionSignalCell signal={signals.get(position.instrumentId) ?? null} locale={locale} />
+              </td>
+            )}
           </tr>
         ))}
       </tbody>

@@ -22,7 +22,27 @@
       "priceAsOf": "Ціна станом на",
       "marketValue": "Ринкова вартість",
       "allocation": "Частка",
-      "unrealizedPnl": "Нереаліз. П/З"
+      "unrealizedPnl": "Нереаліз. П/З",
+      "signal": "Сигнал"
+    },
+    "signal": {
+      "unclassified": "—",
+      "badges": {
+        "trim": "Скоротити",
+        "buyMore": "Докупити",
+        "sell": "Продати",
+        "hold": "Тримати"
+      },
+      "thesisVerdicts": {
+        "holding": "Теза діє",
+        "partiallyWeakening": "Теза частково слабшає",
+        "broken": "Тезу порушено",
+        "notChecked": "Тезу ще не перевірено"
+      },
+      "metricsNotConfigured": "Немає налаштованих сигнальних метрик",
+      "metricsSummary": "{underperforming} з {total} сигнальних метрик не відповідають нормі",
+      "allocationNoBand": "Не налаштовано діапазон частки для позиції",
+      "allocationSummary": "Частка {current} (діапазон {min}–{max})"
     },
     "refresh": {
       "button": "Оновити ціни",

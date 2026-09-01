@@ -22,7 +22,27 @@
       "priceAsOf": "Price as of",
       "marketValue": "Market value",
       "allocation": "Allocation",
-      "unrealizedPnl": "Unrealized P&L"
+      "unrealizedPnl": "Unrealized P&L",
+      "signal": "Signal"
+    },
+    "signal": {
+      "unclassified": "—",
+      "badges": {
+        "trim": "Trim",
+        "buyMore": "Buy more",
+        "sell": "Sell",
+        "hold": "Hold"
+      },
+      "thesisVerdicts": {
+        "holding": "Thesis holding",
+        "partiallyWeakening": "Thesis partially weakening",
+        "broken": "Thesis broken",
+        "notChecked": "Thesis not checked yet"
+      },
+      "metricsNotConfigured": "No signal metric rules configured",
+      "metricsSummary": "{underperforming} of {total} signal metrics underperforming",
+      "allocationNoBand": "No position allocation band configured",
+      "allocationSummary": "Allocation {current} (band {min}–{max})"
     },
     "refresh": {
       "button": "Refresh prices",
