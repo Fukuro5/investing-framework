@@ -1,20 +1,16 @@
 export const EDGAR_DATA_BASE_URL = "https://data.sec.gov";
 export const EDGAR_WWW_BASE_URL = "https://www.sec.gov";
 
-// Revenue's XBRL tag varies by company/ASC-606-adoption era — tried in this
-// order until one returns data (PLANNING.md §1 Phase 3a).
-export const REVENUE_TAG_CANDIDATES = [
-  "RevenueFromContractWithCustomerExcludingAssessedTax",
-  "Revenues",
-  "SalesRevenueNet",
-] as const;
-
-export const NET_INCOME_TAG = "NetIncomeLoss";
-
 // Only these carry the financial statements the trend check needs — other
 // filing types (8-K, proxy, ...) are ignored by the "is there anything new"
-// check (PLANNING.md §1 Phase 3).
-export const TRACKED_FORM_TYPES = ["10-K", "10-Q"] as const;
+// check (PLANNING.md §1 Phase 3). 20-F is the annual report foreign private
+// issuers file instead of a 10-K — they don't file a 10-Q equivalent
+// (interim reports go out as unstructured 6-Ks instead), so there's no
+// quarterly counterpart to track for those filers.
+export const TRACKED_FORM_TYPES = ["10-K", "10-Q", "20-F"] as const;
+
+// Line-item candidates (which XBRL tags/taxonomies feed the trend verdict)
+// live in line-items.ts, not here — see REQUIRED_LINE_ITEMS/OPTIONAL_LINE_ITEMS.
 
 // Slots into the existing MetricValue table (source: "api") rather than a
 // new table (PLANNING.md §1 Phase 3a) — value is encoded 1/0/-1, see

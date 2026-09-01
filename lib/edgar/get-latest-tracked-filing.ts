@@ -35,9 +35,10 @@ const zipRecentFilings = (recent: SubmissionsRecentFilings): TrackedFiling[] =>
     primaryDocument: recent.primaryDocument[index],
   }));
 
-// The most recent 10-K/10-Q — the only filing types carrying the financial
-// statements the trend check (§1 Phase 3a) and filing text (§1 Phase 3b)
-// need. Other filing types (8-K, proxy, ...) are ignored.
+// The most recent tracked filing (10-K/10-Q/20-F) — the filing types
+// carrying the financial statements the trend check (§1 Phase 3a) and
+// filing text (§1 Phase 3b) need. Other filing types (8-K, proxy, ...) are
+// ignored.
 export const getLatestTrackedFiling = async (cik: string, userAgent: string): Promise<TrackedFiling | null> => {
   const url = `${EDGAR_DATA_BASE_URL}/submissions/CIK${cik}.json`;
   const submissions = await getEdgarJson<SubmissionsResponse>(url, userAgent);

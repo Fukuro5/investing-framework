@@ -189,7 +189,7 @@
       "missingUserAgent": "Set SEC_EDGAR_USER_AGENT in .env.local to enable EDGAR checks.",
       "instrumentNotFound": "Something went wrong.",
       "cikNotFound": "Couldn't find an SEC CIK for ticker \"{ticker}\".",
-      "noTrackedFilingFound": "No 10-K/10-Q filing found for this company on EDGAR.",
+      "noTrackedFilingFound": "No 10-K/10-Q/20-F filing found for this company on EDGAR.",
       "financialsUnavailable": "EDGAR didn't have comparable revenue/net income data for the latest filing.",
       "generic": "Something went wrong."
     }

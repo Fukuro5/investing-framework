@@ -1,65 +1,47 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { computeFinancialsTrend, findYoyPeriodPair, TREND_VERDICT_VALUES } from "@/lib/edgar/compute-financials-trend";
+import { computeFinancialsTrend, TREND_VERDICT_VALUES } from "@/lib/edgar/compute-financials-trend";
 import { EdgarError } from "@/lib/edgar/errors";
 import type { TrackedFiling } from "@/lib/edgar/get-latest-tracked-filing";
 
 const FIXTURES_DIR = join(process.cwd(), "fixtures/edgar-samples");
 const readFixture = (name: string) => JSON.parse(readFileSync(join(FIXTURES_DIR, name), "utf-8"));
 
-// Real Apple company-concept samples (fetched from data.sec.gov) — both
-// line items agree on the same accession number, a 10-Q where revenue and
-// net income both grew YoY ("improving").
-const REVENUE_FIXTURE = readFixture("revenue-sample.json");
-const NET_INCOME_FIXTURE = readFixture("net-income-loss-sample.json");
-const IMPROVING_ACCN = "0000320193-26-000020";
+const ACCN = "0000320193-26-000020";
+const FILING: TrackedFiling = { form: "10-Q", filingDate: "2026-07-31", accessionNumber: ACCN, primaryDocument: "x.htm" };
 
 const jsonResponse = (body: unknown, ok = true, status = 200) => Promise.resolve({ ok, status, json: () => Promise.resolve(body) } as Response);
 
-const IMPROVING_FILING: TrackedFiling = { form: "10-Q", filingDate: "2026-07-31", accessionNumber: IMPROVING_ACCN, primaryDocument: "x.htm" };
+const durationConcept = (current: number, prior: number) => ({
+  units: {
+    USD: [
+      { start: "2026-03-29", end: "2026-06-27", val: current, accn: ACCN, fy: 2026, fp: "Q3", form: "10-Q", filed: "2026-07-31" },
+      { start: "2025-03-30", end: "2025-06-28", val: prior, accn: ACCN, fy: 2026, fp: "Q3", form: "10-Q", filed: "2026-07-31" },
+    ],
+  },
+});
 
-// computeFinancialsTrend fetches revenue and net income concurrently
-// (Promise.all), so fetch calls interleave — tests key mock responses off
-// the requested URL rather than call order.
-const mockEdgarConceptsByTag = (responsesByTag: Record<string, unknown>) => {
+const instantConcept = (current: number, prior: number) => ({
+  units: {
+    USD: [
+      { end: "2026-06-27", val: current, accn: ACCN, fy: 2026, fp: "Q3", form: "10-Q", filed: "2026-07-31" },
+      { end: "2025-06-28", val: prior, accn: ACCN, fy: 2026, fp: "Q3", form: "10-Q", filed: "2026-07-31" },
+    ],
+  },
+});
+
+// Keyed by "taxonomy/tag" (the URL suffix fetchConceptFacts builds). Any
+// path not listed here 404s, matching a company that doesn't tag that
+// concept — computeFinancialsTrend must treat that as "skip this optional
+// line item", not a hard failure (PLANNING.md §1 Phase 3a).
+const mockEdgarConcepts = (responsesByPath: Record<string, unknown>) => {
   vi.mocked(fetch).mockImplementation((input) => {
     const url = String(input);
-    const [tag, response] = Object.entries(responsesByTag).find(([candidateTag]) => url.endsWith(`/${candidateTag}.json`)) ?? [];
-    if (!tag) {
-      throw new Error(`Unexpected EDGAR request: ${url}`);
-    }
-    return jsonResponse(response);
+    const entry = Object.entries(responsesByPath).find(([path]) => url.endsWith(`/${path}.json`));
+    return entry ? jsonResponse(entry[1]) : jsonResponse({}, false, 404);
   });
 };
-
-describe("findYoyPeriodPair", () => {
-  const accn = "0001-q2";
-
-  it("pairs the current single-quarter fact with its prior-year comparative quarter", () => {
-    const facts = [
-      { start: "2025-09-28", end: "2026-06-27", val: 300, accn, fy: 2026, fp: "Q3", form: "10-Q", filed: "2026-07-31" }, // YTD current
-      { start: "2026-03-29", end: "2026-06-27", val: 100, accn, fy: 2026, fp: "Q3", form: "10-Q", filed: "2026-07-31" }, // Q current
-      { start: "2024-09-29", end: "2025-06-28", val: 280, accn, fy: 2026, fp: "Q3", form: "10-Q", filed: "2026-07-31" }, // YTD prior
-      { start: "2025-03-30", end: "2025-06-28", val: 90, accn, fy: 2026, fp: "Q3", form: "10-Q", filed: "2026-07-31" }, // Q prior
-    ];
-
-    const pair = findYoyPeriodPair(facts, accn);
-
-    expect(pair?.current.val).toBe(100);
-    expect(pair?.prior.val).toBe(90);
-  });
-
-  it("returns null when no facts match the accession number", () => {
-    expect(findYoyPeriodPair([], accn)).toBeNull();
-  });
-
-  it("returns null when there's no comparable prior-year period (e.g. an IPO-year filing)", () => {
-    const facts = [{ start: "2025-09-28", end: "2026-06-27", val: 300, accn, fy: 2026, fp: "Q3", form: "10-Q", filed: "2026-07-31" }];
-
-    expect(findYoyPeriodPair(facts, accn)).toBeNull();
-  });
-});
 
 describe("computeFinancialsTrend", () => {
   beforeEach(() => {
@@ -70,89 +52,94 @@ describe("computeFinancialsTrend", () => {
     vi.unstubAllGlobals();
   });
 
-  it("returns an improving verdict when real revenue and net income data both grew YoY", async () => {
-    mockEdgarConceptsByTag({
-      RevenueFromContractWithCustomerExcludingAssessedTax: REVENUE_FIXTURE,
-      NetIncomeLoss: NET_INCOME_FIXTURE,
+  it("returns improving when every resolvable line item agrees, including the inverted debt-to-equity ratio", async () => {
+    mockEdgarConcepts({
+      "us-gaap/RevenueFromContractWithCustomerExcludingAssessedTax": durationConcept(120, 100),
+      "us-gaap/NetIncomeLoss": durationConcept(120, 100),
+      "us-gaap/OperatingIncomeLoss": durationConcept(120, 100),
+      "us-gaap/GrossProfit": durationConcept(120, 100),
+      "us-gaap/EarningsPerShareDiluted": durationConcept(1.2, 1.0),
+      "us-gaap/NetCashProvidedByUsedInOperatingActivities": durationConcept(240, 200),
+      "us-gaap/PaymentsToAcquirePropertyPlantAndEquipment": durationConcept(50, 50),
+      "us-gaap/Liabilities": instantConcept(400, 500), // leverage falling → improving after inversion
+      "us-gaap/StockholdersEquity": instantConcept(500, 500),
     });
 
-    const result = await computeFinancialsTrend("0000320193", IMPROVING_FILING, "ua");
+    const result = await computeFinancialsTrend("0000320193", FILING, "ua");
 
     expect(result.verdict).toBe("improving");
     expect(result.value).toBe(TREND_VERDICT_VALUES.improving);
     expect(result.asOfDate).toEqual(new Date("2026-06-27"));
   });
 
-  it("falls back to the next revenue tag candidate when the first 404s", async () => {
-    vi.mocked(fetch).mockImplementation((input) => {
-      const url = String(input);
-      if (url.endsWith("/RevenueFromContractWithCustomerExcludingAssessedTax.json")) {
-        return jsonResponse({}, false, 404);
-      }
-      if (url.endsWith("/Revenues.json")) {
-        return jsonResponse(REVENUE_FIXTURE);
-      }
-      if (url.endsWith("/NetIncomeLoss.json")) {
-        return jsonResponse(NET_INCOME_FIXTURE);
-      }
-      throw new Error(`Unexpected EDGAR request: ${url}`);
+  it("still resolves a verdict from revenue/net income alone when a company tags none of the optional line items", async () => {
+    mockEdgarConcepts({
+      "us-gaap/RevenueFromContractWithCustomerExcludingAssessedTax": durationConcept(120, 100),
+      "us-gaap/NetIncomeLoss": durationConcept(120, 100),
     });
 
-    const result = await computeFinancialsTrend("0000320193", IMPROVING_FILING, "ua");
+    const result = await computeFinancialsTrend("0000320193", FILING, "ua");
 
     expect(result.verdict).toBe("improving");
   });
 
-  it("returns a deteriorating verdict when both line items shrank YoY past the threshold", async () => {
-    const shrinking = {
-      units: {
-        USD: [
-          { start: "2026-03-29", end: "2026-06-27", val: 80, accn: IMPROVING_ACCN, fy: 2026, fp: "Q3", form: "10-Q", filed: "2026-07-31" },
-          { start: "2025-03-30", end: "2025-06-28", val: 100, accn: IMPROVING_ACCN, fy: 2026, fp: "Q3", form: "10-Q", filed: "2026-07-31" },
-        ],
-      },
-    };
-    mockEdgarConceptsByTag({ RevenueFromContractWithCustomerExcludingAssessedTax: shrinking, NetIncomeLoss: shrinking });
+  it("throws financialsUnavailable when revenue can't be resolved, even if other line items can", async () => {
+    mockEdgarConcepts({ "us-gaap/NetIncomeLoss": durationConcept(120, 100) });
 
-    const result = await computeFinancialsTrend("0000320193", IMPROVING_FILING, "ua");
-
-    expect(result.verdict).toBe("deteriorating");
-    expect(result.value).toBe(TREND_VERDICT_VALUES.deteriorating);
+    await expect(computeFinancialsTrend("0000320193", FILING, "ua")).rejects.toThrow(EdgarError);
   });
 
-  it("returns a flat verdict when the two line items disagree in direction", async () => {
-    const growing = {
-      units: {
-        USD: [
-          { start: "2026-03-29", end: "2026-06-27", val: 120, accn: IMPROVING_ACCN, fy: 2026, fp: "Q3", form: "10-Q", filed: "2026-07-31" },
-          { start: "2025-03-30", end: "2025-06-28", val: 100, accn: IMPROVING_ACCN, fy: 2026, fp: "Q3", form: "10-Q", filed: "2026-07-31" },
-        ],
-      },
-    };
-    const shrinking = {
-      units: {
-        USD: [
-          { start: "2026-03-29", end: "2026-06-27", val: 80, accn: IMPROVING_ACCN, fy: 2026, fp: "Q3", form: "10-Q", filed: "2026-07-31" },
-          { start: "2025-03-30", end: "2025-06-28", val: 100, accn: IMPROVING_ACCN, fy: 2026, fp: "Q3", form: "10-Q", filed: "2026-07-31" },
-        ],
-      },
-    };
-    mockEdgarConceptsByTag({ RevenueFromContractWithCustomerExcludingAssessedTax: growing, NetIncomeLoss: shrinking });
+  it("throws financialsUnavailable when net income can't be resolved", async () => {
+    mockEdgarConcepts({ "us-gaap/RevenueFromContractWithCustomerExcludingAssessedTax": durationConcept(120, 100) });
 
-    const result = await computeFinancialsTrend("0000320193", IMPROVING_FILING, "ua");
+    await expect(computeFinancialsTrend("0000320193", FILING, "ua")).rejects.toThrow(EdgarError);
+  });
+
+  it("uses majority vote: more deteriorating than improving line items wins", async () => {
+    mockEdgarConcepts({
+      "us-gaap/RevenueFromContractWithCustomerExcludingAssessedTax": durationConcept(120, 100), // improving
+      "us-gaap/NetIncomeLoss": durationConcept(80, 100), // deteriorating
+      "us-gaap/OperatingIncomeLoss": durationConcept(80, 100), // deteriorating
+    });
+
+    const result = await computeFinancialsTrend("0000320193", FILING, "ua");
+
+    expect(result.verdict).toBe("deteriorating");
+  });
+
+  it("resolves to flat on a tie between improving and deteriorating line items", async () => {
+    mockEdgarConcepts({
+      "us-gaap/RevenueFromContractWithCustomerExcludingAssessedTax": durationConcept(120, 100), // improving
+      "us-gaap/NetIncomeLoss": durationConcept(80, 100), // deteriorating
+    });
+
+    const result = await computeFinancialsTrend("0000320193", FILING, "ua");
 
     expect(result.verdict).toBe("flat");
   });
 
-  it("throws financialsUnavailable when no revenue tag candidate has a comparable period", async () => {
-    vi.mocked(fetch).mockImplementation((input) => {
-      const url = String(input);
-      if (url.endsWith("/NetIncomeLoss.json")) {
-        return jsonResponse(NET_INCOME_FIXTURE);
-      }
-      return jsonResponse({}, false, 404);
+  it("lets a rising debt-to-equity ratio alone tip an otherwise-flat verdict to deteriorating", async () => {
+    mockEdgarConcepts({
+      "us-gaap/RevenueFromContractWithCustomerExcludingAssessedTax": durationConcept(101, 100), // flat (<5% move)
+      "us-gaap/NetIncomeLoss": durationConcept(101, 100), // flat
+      "us-gaap/Liabilities": instantConcept(600, 500), // leverage rising → deteriorating after inversion
+      "us-gaap/StockholdersEquity": instantConcept(500, 500),
     });
 
-    await expect(computeFinancialsTrend("0000320193", IMPROVING_FILING, "ua")).rejects.toThrow(EdgarError);
+    const result = await computeFinancialsTrend("0000320193", FILING, "ua");
+
+    expect(result.verdict).toBe("deteriorating");
+  });
+
+  it("falls back to the ifrs-full taxonomy and cross-accession comparatives for a 20-F filer (real TSMC data)", async () => {
+    const revenueFixture = readFixture("tsm-ifrs-revenue-sample.json");
+    const profitLossFixture = readFixture("tsm-ifrs-profit-loss-sample.json");
+    mockEdgarConcepts({ "ifrs-full/Revenue": revenueFixture, "ifrs-full/ProfitLoss": profitLossFixture });
+    const tsmFiling: TrackedFiling = { form: "20-F", filingDate: "2025-04-17", accessionNumber: "0001193125-25-083423", primaryDocument: "x.htm" };
+
+    const result = await computeFinancialsTrend("0001046179", tsmFiling, "ua");
+
+    expect(result.verdict).toBe("improving");
+    expect(result.asOfDate).toEqual(new Date("2024-12-31"));
   });
 });

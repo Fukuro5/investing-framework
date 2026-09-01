@@ -21,7 +21,10 @@ const SUBMISSIONS_RESPONSE = {
 
 // End-to-end (network mocked, real sqlite DB): mocks every EDGAR endpoint
 // the orchestrator touches, keyed by URL so Promise.all's concurrent
-// fetches inside computeFinancialsTrend resolve correctly regardless of call order.
+// fetches inside computeFinancialsTrend resolve correctly regardless of call
+// order. Any other companyconcept request (the optional line items beyond
+// revenue/net income) 404s, same as a company that doesn't tag that concept
+// — computeFinancialsTrend treats that as "skip", not an error.
 const mockEdgarEndpoints = () => {
   vi.mocked(fetch).mockImplementation((input) => {
     const url = String(input);
@@ -29,6 +32,7 @@ const mockEdgarEndpoints = () => {
     if (url.includes("/submissions/CIK")) return jsonResponse(SUBMISSIONS_RESPONSE);
     if (url.endsWith("/RevenueFromContractWithCustomerExcludingAssessedTax.json")) return jsonResponse(REVENUE_FIXTURE);
     if (url.endsWith("/NetIncomeLoss.json")) return jsonResponse(NET_INCOME_FIXTURE);
+    if (url.includes("/api/xbrl/companyconcept/")) return jsonResponse({}, false, 404);
     throw new Error(`Unexpected EDGAR request: ${url}`);
   });
 };

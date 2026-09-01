@@ -30,7 +30,7 @@ export const checkForNewFiling = async ({
   const filing = await getLatestTrackedFiling(cik, userAgent);
 
   if (!filing) {
-    throw new EdgarError("noTrackedFilingFound", `No 10-K/10-Q filing found for CIK "${cik}"`);
+    throw new EdgarError("noTrackedFilingFound", `No 10-K/10-Q/20-F filing found for CIK "${cik}"`);
   }
 
   if (filing.accessionNumber === instrument.lastCheckedAccessionNumber) {

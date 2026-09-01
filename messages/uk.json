@@ -189,7 +189,7 @@
       "missingUserAgent": "Додайте SEC_EDGAR_USER_AGENT у .env.local, щоб увімкнути перевірки EDGAR.",
       "instrumentNotFound": "Щось пішло не так.",
       "cikNotFound": "Не вдалося знайти CIK SEC для тікера «{ticker}».",
-      "noTrackedFilingFound": "Для цієї компанії на EDGAR не знайдено звіту 10-K/10-Q.",
+      "noTrackedFilingFound": "Для цієї компанії на EDGAR не знайдено звіту 10-K/10-Q/20-F.",
       "financialsUnavailable": "EDGAR не має порівнянних даних про виручку/чистий прибуток для останнього звіту.",
       "generic": "Щось пішло не так."
     }
