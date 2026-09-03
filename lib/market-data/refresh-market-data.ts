@@ -73,9 +73,11 @@ const refreshMetrics = async (provider: MarketDataProvider, db: PrismaClient) =>
 
   const [instruments, activeRules] = await Promise.all([
     db.instrument.findMany(),
-    db.groupRule.findMany({ where: { isActive: true }, select: { metricKey: true } }),
+    db.groupRule.findMany({ where: { type: "metric", isActive: true }, select: { metricKey: true } }),
   ]);
-  const metricKeys = [...new Set(activeRules.map((rule) => rule.metricKey))];
+  const metricKeys = [
+    ...new Set(activeRules.map((rule) => rule.metricKey).filter((metricKey): metricKey is string => metricKey !== null)),
+  ];
 
   for (const instrument of instruments) {
     for (const metricKey of metricKeys) {

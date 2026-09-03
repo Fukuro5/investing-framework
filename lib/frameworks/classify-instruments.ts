@@ -8,13 +8,21 @@ export interface ClassifyInstrumentsResult {
   classifiedCount: number;
 }
 
-const matchesGroup = async (
-  db: PrismaClient,
-  instrumentId: string,
-  rules: { metricKey: string; operator: string; threshold: number }[],
-): Promise<boolean> => {
+interface MetricRule {
+  metricKey: string | null;
+  operator: string | null;
+  threshold: number | null;
+}
+
+// The where clause already filters to type='metric', so metricKey/
+// operator/threshold are always populated — narrow explicitly rather than
+// asserting, since the schema still types them as nullable.
+const isPopulatedMetricRule = (rule: MetricRule): rule is { metricKey: string; operator: string; threshold: number } =>
+  rule.metricKey !== null && rule.operator !== null && rule.threshold !== null;
+
+const matchesGroup = async (db: PrismaClient, instrumentId: string, rules: MetricRule[]): Promise<boolean> => {
   const results = await Promise.all(
-    rules.map(async (rule) => {
+    rules.filter(isPopulatedMetricRule).map(async (rule) => {
       const resolved = await resolveMetricValue(instrumentId, rule.metricKey, db);
       return evaluateRule(rule.operator, rule.threshold, resolved?.value ?? null) === "ok";
     }),
@@ -37,7 +45,7 @@ export const classifyInstruments = async (
     db.frameworkGroup.findMany({
       where: { frameworkId },
       orderBy: { priority: "asc" },
-      include: { rules: { where: { role: "classification", isActive: true } } },
+      include: { rules: { where: { type: "metric", role: "classification", isActive: true } } },
     }),
     db.instrumentGroupAssignment.findMany({ where: { frameworkId }, select: { instrumentId: true } }),
     getPositions(db),

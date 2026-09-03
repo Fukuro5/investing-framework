@@ -24,6 +24,10 @@ const validate = (input: CreateGroupInput) => {
   }
 };
 
+// Every group requires exactly one type='allocation', scope='group' rule
+// (its own target band) — created transactionally alongside the group
+// itself rather than as a separate step, so a group is never left without
+// its required band (PLANNING.md §1 Phase 1).
 export const createGroup = async (input: CreateGroupInput, db: PrismaClient = prisma) => {
   validate(input);
   const name = input.name.trim();
@@ -35,13 +39,26 @@ export const createGroup = async (input: CreateGroupInput, db: PrismaClient = pr
     throw new FrameworkError("groupNameTaken", `This framework already has a group named "${name}"`, { name });
   }
 
-  return db.frameworkGroup.create({
-    data: {
-      frameworkId: input.frameworkId,
-      name,
-      targetAllocationMin: input.targetAllocationMin,
-      targetAllocationMax: input.targetAllocationMax,
-      priority: input.priority,
-    },
+  return db.$transaction(async (tx) => {
+    const group = await tx.frameworkGroup.create({
+      data: {
+        frameworkId: input.frameworkId,
+        name,
+        priority: input.priority,
+      },
+    });
+
+    await tx.groupRule.create({
+      data: {
+        groupId: group.id,
+        type: "allocation",
+        scope: "group",
+        minAllocation: input.targetAllocationMin,
+        maxAllocation: input.targetAllocationMax,
+        role: "signal",
+      },
+    });
+
+    return group;
   });
 };

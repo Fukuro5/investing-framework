@@ -7,6 +7,7 @@
     "importLink": "Import",
     "frameworksLink": "Frameworks",
     "metricsLink": "Metrics",
+    "thesisLink": "Thesis",
     "languageSwitcherLabel": "Switch language"
   },
   "dashboardPage": {
@@ -21,7 +22,27 @@
       "priceAsOf": "Price as of",
       "marketValue": "Market value",
       "allocation": "Allocation",
-      "unrealizedPnl": "Unrealized P&L"
+      "unrealizedPnl": "Unrealized P&L",
+      "signal": "Signal"
+    },
+    "signal": {
+      "unclassified": "—",
+      "badges": {
+        "trim": "Trim",
+        "buyMore": "Buy more",
+        "sell": "Sell",
+        "hold": "Hold"
+      },
+      "thesisVerdicts": {
+        "holding": "Thesis holding",
+        "partiallyWeakening": "Thesis partially weakening",
+        "broken": "Thesis broken",
+        "notChecked": "Thesis not checked yet"
+      },
+      "metricsNotConfigured": "No signal metric rules configured",
+      "metricsSummary": "{underperforming} of {total} signal metrics underperforming",
+      "allocationNoBand": "No position allocation band configured",
+      "allocationSummary": "Allocation {current} (band {min}–{max})"
     },
     "refresh": {
       "button": "Refresh prices",
@@ -85,6 +106,11 @@
     "newGroupTitle": "Add group",
     "addGroupButton": "Add group",
     "rulesTitle": "Rules",
+    "ruleTypeLabel": "Rule type",
+    "ruleTypes": {
+      "metric": "Metric",
+      "allocation": "Position allocation"
+    },
     "ruleMetricKeyLabel": "Metric key",
     "ruleOperatorLabel": "Operator",
     "ruleOperators": {
@@ -95,6 +121,13 @@
       "eq": "= (equal to)"
     },
     "ruleThresholdLabel": "Threshold",
+    "ruleRoleLabel": "Role",
+    "ruleRoles": {
+      "classification": "Classification (decides group membership)",
+      "signal": "Signal (decides trim/buy-more/sell/hold)"
+    },
+    "ruleMinAllocationLabel": "Min % per position",
+    "ruleMaxAllocationLabel": "Max % per position",
     "ruleActiveLabel": "Active",
     "addRuleButton": "Add rule",
     "deleteRuleConfirm": "Delete the \"{metricKey}\" rule?",
@@ -123,6 +156,27 @@
     "asOfDateLabel": "As of date",
     "saveButton": "Save"
   },
+  "thesisPage": {
+    "title": "Thesis",
+    "description": "Your investment thesis for each company — why you believe it will go up. Shared across every framework.",
+    "noPositions": "No positions yet — import a statement first.",
+    "contentLabel": "Thesis",
+    "saveButton": "Save",
+    "edgarCheckButton": "Check for updates",
+    "edgarNeverChecked": "Never checked against SEC EDGAR.",
+    "edgarLastChecked": "Last checked filing: {date}",
+    "edgarUpToDate": "Already up to date since your last check.",
+    "edgarVerdictImproving": "Financials trend: improving",
+    "edgarVerdictFlat": "Financials trend: flat",
+    "edgarVerdictDeteriorating": "Financials trend: deteriorating",
+    "thesisVerdictHolding": "Thesis check: still holds",
+    "thesisVerdictPartiallyWeakening": "Thesis check: partially weakening",
+    "thesisVerdictBroken": "Thesis check: broken",
+    "thesisCheckSkippedNoThesis": "No thesis written yet — add one to enable the AI thesis check.",
+    "thesisCheckMissingApiKey": "Set OPENAI_API_KEY in .env.local to enable the AI thesis check.",
+    "thesisCheckRequestFailed": "The AI thesis check failed — try again later.",
+    "thesisCheckInvalidResponse": "The AI thesis check returned an unexpected response — try again later."
+  },
   "errors": {
     "invalidFile": "Couldn't read this file as a Freedom Finance JSON statement.",
     "genericImportError": "Something went wrong while importing this statement.",
@@ -140,12 +194,30 @@
       "groupFieldMustBeNumber": "That field must be a number.",
       "ruleMetricKeyRequired": "Metric key is required.",
       "ruleOperatorInvalid": "Unrecognized operator.",
+      "ruleTypeInvalid": "Unrecognized rule type.",
+      "ruleRoleInvalid": "Unrecognized role.",
+      "ruleAllocationOutOfRange": "Allocation must be between 0 and 100.",
+      "ruleMinGreaterThanMax": "Allocation minimum can't be greater than the maximum.",
+      "ruleGroupScopeNotAllowed": "A group's own allocation band is edited from the group form, not the rule list.",
+      "ruleGroupScopeCannotBeDeleted": "A group's own allocation band can't be deleted — delete the group instead.",
+      "rulePositionScopeAlreadyExists": "This group already has a position-level allocation rule — edit it instead of adding another.",
       "generic": "Something went wrong."
     },
     "metrics": {
       "metricKeyRequired": "Metric key is required.",
       "metricValueMustBeNumber": "Metric value must be a number.",
       "metricAsOfDateInvalid": "That's not a valid date.",
+      "generic": "Something went wrong."
+    },
+    "thesis": {
+      "generic": "Something went wrong."
+    },
+    "edgar": {
+      "missingUserAgent": "Set SEC_EDGAR_USER_AGENT in .env.local to enable EDGAR checks.",
+      "instrumentNotFound": "Something went wrong.",
+      "cikNotFound": "Couldn't find an SEC CIK for ticker \"{ticker}\".",
+      "noTrackedFilingFound": "No 10-K/10-Q/20-F filing found for this company on EDGAR.",
+      "financialsUnavailable": "EDGAR didn't have comparable revenue/net income data for the latest filing.",
       "generic": "Something went wrong."
     }
   }

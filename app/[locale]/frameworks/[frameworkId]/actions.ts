@@ -137,15 +137,31 @@ export const createRuleAction = async (
   db: PrismaClient = prisma,
 ): Promise<FormState> => {
   try {
-    await createRule(
-      {
-        groupId: String(formData.get("groupId") ?? ""),
-        metricKey: String(formData.get("metricKey") ?? ""),
-        operator: String(formData.get("operator") ?? ""),
-        threshold: readNumber(formData, "threshold"),
-      },
-      db,
-    );
+    const groupId = String(formData.get("groupId") ?? "");
+
+    if (formData.get("type") === "allocation") {
+      await createRule(
+        {
+          groupId,
+          type: "allocation",
+          minAllocation: readNumber(formData, "minAllocation"),
+          maxAllocation: readNumber(formData, "maxAllocation"),
+        },
+        db,
+      );
+    } else {
+      await createRule(
+        {
+          groupId,
+          type: "metric",
+          metricKey: String(formData.get("metricKey") ?? ""),
+          operator: String(formData.get("operator") ?? ""),
+          threshold: readNumber(formData, "threshold"),
+          role: String(formData.get("role") ?? ""),
+        },
+        db,
+      );
+    }
   } catch (error) {
     return await toErrorState(error);
   }
@@ -159,16 +175,34 @@ export const updateRuleAction = async (
   db: PrismaClient = prisma,
 ): Promise<FormState> => {
   try {
-    await updateRule(
-      {
-        ruleId: String(formData.get("ruleId") ?? ""),
-        metricKey: String(formData.get("metricKey") ?? ""),
-        operator: String(formData.get("operator") ?? ""),
-        threshold: readNumber(formData, "threshold"),
-        isActive: formData.get("isActive") === "on",
-      },
-      db,
-    );
+    const ruleId = String(formData.get("ruleId") ?? "");
+    const isActive = formData.get("isActive") === "on";
+
+    if (formData.get("type") === "allocation") {
+      await updateRule(
+        {
+          ruleId,
+          type: "allocation",
+          minAllocation: readNumber(formData, "minAllocation"),
+          maxAllocation: readNumber(formData, "maxAllocation"),
+          isActive,
+        },
+        db,
+      );
+    } else {
+      await updateRule(
+        {
+          ruleId,
+          type: "metric",
+          metricKey: String(formData.get("metricKey") ?? ""),
+          operator: String(formData.get("operator") ?? ""),
+          threshold: readNumber(formData, "threshold"),
+          role: String(formData.get("role") ?? ""),
+          isActive,
+        },
+        db,
+      );
+    }
   } catch (error) {
     return await toErrorState(error);
   }

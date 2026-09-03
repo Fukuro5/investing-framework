@@ -2,6 +2,7 @@ import type { PrismaClient } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { withAllocationPercent } from "@/lib/dashboard/allocation";
 import { getPositions } from "@/lib/dashboard/get-positions";
+import { resolveGroupAllocationBand } from "@/lib/frameworks/validate-groups-total";
 
 export interface GroupAllocationView {
   groupId: string;
@@ -27,7 +28,12 @@ export interface ActiveFrameworkAllocations {
 export const getActiveFrameworkAllocations = async (db: PrismaClient = prisma): Promise<ActiveFrameworkAllocations | null> => {
   const framework = await db.framework.findFirst({
     where: { isActive: true },
-    include: { groups: { orderBy: { priority: "asc" } } },
+    include: {
+      groups: {
+        orderBy: { priority: "asc" },
+        include: { rules: { where: { type: "allocation", scope: "group" } } },
+      },
+    },
   });
 
   if (!framework) {
@@ -57,15 +63,26 @@ export const getActiveFrameworkAllocations = async (db: PrismaClient = prisma): 
     allocationByGroupId.set(groupId, (allocationByGroupId.get(groupId) ?? 0) + position.allocationPercent);
   }
 
+  const groups = framework.groups.flatMap((group) => {
+    const band = resolveGroupAllocationBand(group.rules);
+    if (!band) {
+      return [];
+    }
+
+    return [
+      {
+        groupId: group.id,
+        name: group.name,
+        targetAllocationMin: band.minAllocation,
+        targetAllocationMax: band.maxAllocation,
+        currentAllocationPercent: allocationByGroupId.get(group.id) ?? 0,
+      },
+    ];
+  });
+
   return {
     framework: { id: framework.id, name: framework.name },
-    groups: framework.groups.map((group) => ({
-      groupId: group.id,
-      name: group.name,
-      targetAllocationMin: group.targetAllocationMin,
-      targetAllocationMax: group.targetAllocationMax,
-      currentAllocationPercent: allocationByGroupId.get(group.id) ?? 0,
-    })),
+    groups,
     unclassifiedAllocationPercent,
   };
 };
