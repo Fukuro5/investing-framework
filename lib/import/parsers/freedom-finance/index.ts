@@ -1,6 +1,4 @@
-import { mapCashInOuts } from "@/lib/import/parsers/freedom-finance/map-cash-in-outs";
 import { mapPositionSnapshots } from "@/lib/import/parsers/freedom-finance/map-positions";
-import { mapTrades } from "@/lib/import/parsers/freedom-finance/map-trades";
 import { toDate } from "@/lib/import/parsers/freedom-finance/normalize";
 import type { FreedomFinanceStatementRaw } from "@/lib/import/parsers/freedom-finance/raw-types";
 import { validateFreedomFinanceStatement } from "@/lib/import/parsers/freedom-finance/validate";
@@ -23,6 +21,9 @@ const readFreedomFinanceStatement = (file: Buffer | string): FreedomFinanceState
   return validateFreedomFinanceStatement(parsed);
 };
 
+// This app only imports position snapshots from Freedom Finance (current
+// holdings — ticker, quantity, avg cost, market value, unrealized P&L), not
+// trades or cash movements (dividends, deposits, withdrawals).
 export const parseFreedomFinanceStatement: StatementParser = (file): ParsedStatement => {
   const raw = readFreedomFinanceStatement(file);
 
@@ -33,10 +34,10 @@ export const parseFreedomFinanceStatement: StatementParser = (file): ParsedState
       baseCurrency: raw.plainAccountInfoData.base_currency,
     },
     period: { start: toDate(raw.date_start), end: toDate(raw.date_end) },
-    transactions: [...mapTrades(raw.trades.detailed), ...mapCashInOuts(raw.cash_in_outs, raw.corporate_actions.detailed)],
+    transactions: [],
     positionSnapshots: [
-      ...mapPositionSnapshots(raw.account_at_start.account.positions_from_ts.ps.acc, toDate(raw.account_at_start.date)),
-      ...mapPositionSnapshots(raw.account_at_end.account.positions_from_ts.ps.acc, toDate(raw.account_at_end.date)),
+      ...mapPositionSnapshots(raw.account_at_start.positions, toDate(raw.account_at_start.date)),
+      ...mapPositionSnapshots(raw.account_at_end.positions, toDate(raw.account_at_end.date)),
     ],
   };
 };
