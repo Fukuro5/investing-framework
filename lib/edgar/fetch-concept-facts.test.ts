@@ -42,4 +42,10 @@ describe("fetchConceptFacts", () => {
 
     expect(facts).toEqual([]);
   });
+
+  it("rethrows a non-404 failure instead of misreporting it as no data", async () => {
+    fetchMock.mockReturnValueOnce(jsonResponse({}, false, 503));
+
+    await expect(fetchConceptFacts("0000320193", { taxonomy: "us-gaap", tag: "NetIncomeLoss" }, "ua")).rejects.toThrow(/status 503/);
+  });
 });

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { getEdgarJson, getEdgarText } from "@/lib/edgar/edgar-client";
+import { EdgarHttpError, getEdgarJson, getEdgarText } from "@/lib/edgar/edgar-client";
 
 describe("edgar-client", () => {
   const fetchMock = vi.fn();
@@ -24,10 +24,15 @@ describe("edgar-client", () => {
     expect(init.headers).toEqual({ "User-Agent": "my-app contact@example.com" });
   });
 
-  it("getEdgarJson throws when the response is not ok", async () => {
+  it("getEdgarJson throws an EdgarHttpError carrying the status when the response is not ok", async () => {
     fetchMock.mockResolvedValueOnce({ ok: false, status: 403 });
 
     await expect(getEdgarJson("https://data.sec.gov/some/path.json", "ua")).rejects.toThrow(/status 403/);
+
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 403 });
+    const error = await getEdgarJson("https://data.sec.gov/some/path.json", "ua").catch((caught) => caught);
+    expect(error).toBeInstanceOf(EdgarHttpError);
+    expect((error as EdgarHttpError).status).toBe(403);
   });
 
   it("getEdgarText sends the User-Agent header and returns the raw body text", async () => {

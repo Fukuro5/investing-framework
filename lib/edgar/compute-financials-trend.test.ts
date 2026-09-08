@@ -131,6 +131,30 @@ describe("computeFinancialsTrend", () => {
     expect(result.verdict).toBe("deteriorating");
   });
 
+  it("classifies a move off a zero prior-period baseline by sign instead of dividing by zero", async () => {
+    mockEdgarConcepts({
+      "us-gaap/RevenueFromContractWithCustomerExcludingAssessedTax": durationConcept(50, 0),
+      "us-gaap/NetIncomeLoss": durationConcept(120, 100),
+    });
+
+    const result = await computeFinancialsTrend("0000320193", FILING, "ua");
+
+    expect(result.verdict).toBe("improving");
+  });
+
+  it("skips the debt-to-equity ratio (rather than dividing by zero) when either period's equity is zero", async () => {
+    mockEdgarConcepts({
+      "us-gaap/RevenueFromContractWithCustomerExcludingAssessedTax": durationConcept(120, 100), // improving
+      "us-gaap/NetIncomeLoss": durationConcept(80, 100), // deteriorating
+      "us-gaap/Liabilities": instantConcept(400, 500),
+      "us-gaap/StockholdersEquity": instantConcept(500, 0), // zero prior equity
+    });
+
+    const result = await computeFinancialsTrend("0000320193", FILING, "ua");
+
+    expect(result.verdict).toBe("flat");
+  });
+
   it("falls back to the ifrs-full taxonomy and cross-accession comparatives for a 20-F filer (real TSMC data)", async () => {
     const revenueFixture = readFixture("tsm-ifrs-revenue-sample.json");
     const profitLossFixture = readFixture("tsm-ifrs-profit-loss-sample.json");

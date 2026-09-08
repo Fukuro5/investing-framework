@@ -26,6 +26,15 @@ interface LineItemResolution {
 }
 
 const classifyChange = (current: number, prior: number): Contribution => {
+  // A zero baseline makes a percent change undefined — classify by the sign
+  // of the move itself instead of dividing by zero.
+  if (prior === 0) {
+    if (current === 0) {
+      return "flat";
+    }
+    return current > 0 ? "improving" : "deteriorating";
+  }
+
   const change = (current - prior) / Math.abs(prior);
   const threshold = TREND_MOVE_THRESHOLD_PERCENT / 100;
 
@@ -100,6 +109,9 @@ const resolveLineItem = async (
     resolveConceptYoyPair(cik, item.denominator, accessionNumber, userAgent),
   ]);
   if (!numeratorPair || !denominatorPair) {
+    return null;
+  }
+  if (denominatorPair.current.val === 0 || denominatorPair.prior.val === 0) {
     return null;
   }
   const contribution = invert(

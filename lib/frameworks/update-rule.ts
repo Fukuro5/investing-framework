@@ -25,8 +25,10 @@ export type UpdateRuleInput = UpdateMetricRuleInput | UpdateAllocationRuleInput;
 
 // A group's own type='allocation', scope='group' rule is only ever edited
 // via update-group.ts, alongside the group itself — not reachable through
-// this generic action.
-const ensureNotGroupScope = async (ruleId: string, db: PrismaClient) => {
+// this generic action. Also guards against a submitted `type` that doesn't
+// match the persisted rule's own type, which would otherwise route the
+// update through the wrong branch and write mismatched columns.
+const ensureRuleMatchesInputType = async (ruleId: string, type: UpdateRuleInput["type"], db: PrismaClient) => {
   const current = await db.groupRule.findUniqueOrThrow({ where: { id: ruleId } });
 
   if (current.type === "allocation" && current.scope === "group") {
@@ -35,10 +37,14 @@ const ensureNotGroupScope = async (ruleId: string, db: PrismaClient) => {
       "A group's own allocation band is edited from the group form, not the rule list",
     );
   }
+
+  if (current.type !== type) {
+    throw new FrameworkError("ruleTypeInvalid", `Rule "${ruleId}" is not a ${type} rule`);
+  }
 };
 
 const updateAllocationRule = async (input: UpdateAllocationRuleInput, db: PrismaClient) => {
-  await ensureNotGroupScope(input.ruleId, db);
+  await ensureRuleMatchesInputType(input.ruleId, input.type, db);
 
   if (input.minAllocation < 0 || input.maxAllocation > 100) {
     throw new FrameworkError("ruleAllocationOutOfRange", "Allocation must be between 0 and 100");
@@ -55,7 +61,7 @@ const updateAllocationRule = async (input: UpdateAllocationRuleInput, db: Prisma
 };
 
 const updateMetricRule = async (input: UpdateMetricRuleInput, db: PrismaClient) => {
-  await ensureNotGroupScope(input.ruleId, db);
+  await ensureRuleMatchesInputType(input.ruleId, input.type, db);
   const metricKey = input.metricKey.trim();
 
   if (metricKey.length === 0) {

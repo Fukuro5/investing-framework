@@ -86,4 +86,26 @@ describe("updateRule", () => {
       ),
     ).rejects.toThrow(/edited from the group form/);
   });
+
+  it("throws when submitting an allocation update for a rule that's actually type='metric'", async () => {
+    const rule = await createRule(
+      { groupId, type: "metric", metricKey: "roic", operator: "gt", threshold: 15, role: "classification" },
+      testDb.prisma,
+    );
+
+    await expect(
+      updateRule({ ruleId: rule.id, type: "allocation", minAllocation: 0, maxAllocation: 20, isActive: true }, testDb.prisma),
+    ).rejects.toThrow(/is not a allocation rule/);
+  });
+
+  it("throws when submitting a metric update for a rule that's actually type='allocation'", async () => {
+    const rule = await createRule({ groupId, type: "allocation", minAllocation: 0, maxAllocation: 15 }, testDb.prisma);
+
+    await expect(
+      updateRule(
+        { ruleId: rule.id, type: "metric", metricKey: "roic", operator: "gt", threshold: 15, role: "classification", isActive: true },
+        testDb.prisma,
+      ),
+    ).rejects.toThrow(/is not a metric rule/);
+  });
 });
