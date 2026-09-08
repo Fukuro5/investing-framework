@@ -7,6 +7,7 @@
     "importLink": "Імпорт",
     "frameworksLink": "Фреймворки",
     "metricsLink": "Метрики",
+    "thesisLink": "Теза",
     "languageSwitcherLabel": "Змінити мову"
   },
   "dashboardPage": {
@@ -21,7 +22,27 @@
       "priceAsOf": "Ціна станом на",
       "marketValue": "Ринкова вартість",
       "allocation": "Частка",
-      "unrealizedPnl": "Нереаліз. П/З"
+      "unrealizedPnl": "Нереаліз. П/З",
+      "signal": "Сигнал"
+    },
+    "signal": {
+      "unclassified": "—",
+      "badges": {
+        "trim": "Скоротити",
+        "buyMore": "Докупити",
+        "sell": "Продати",
+        "hold": "Тримати"
+      },
+      "thesisVerdicts": {
+        "holding": "Теза діє",
+        "partiallyWeakening": "Теза частково слабшає",
+        "broken": "Тезу порушено",
+        "notChecked": "Тезу ще не перевірено"
+      },
+      "metricsNotConfigured": "Немає налаштованих сигнальних метрик",
+      "metricsSummary": "{underperforming} з {total} сигнальних метрик не відповідають нормі",
+      "allocationNoBand": "Не налаштовано діапазон частки для позиції",
+      "allocationSummary": "Частка {current} (діапазон {min}–{max})"
     },
     "refresh": {
       "button": "Оновити ціни",
@@ -85,6 +106,11 @@
     "newGroupTitle": "Додати групу",
     "addGroupButton": "Додати групу",
     "rulesTitle": "Правила",
+    "ruleTypeLabel": "Тип правила",
+    "ruleTypes": {
+      "metric": "Метрика",
+      "allocation": "Розподіл позиції"
+    },
     "ruleMetricKeyLabel": "Метрика",
     "ruleOperatorLabel": "Оператор",
     "ruleOperators": {
@@ -95,6 +121,13 @@
       "eq": "= (дорівнює)"
     },
     "ruleThresholdLabel": "Порогове значення",
+    "ruleRoleLabel": "Роль",
+    "ruleRoles": {
+      "classification": "Класифікація (визначає членство в групі)",
+      "signal": "Сигнал (визначає скоротити/докупити/продати/тримати)"
+    },
+    "ruleMinAllocationLabel": "Мін. % на позицію",
+    "ruleMaxAllocationLabel": "Макс. % на позицію",
     "ruleActiveLabel": "Активне",
     "addRuleButton": "Додати правило",
     "deleteRuleConfirm": "Видалити правило «{metricKey}»?",
@@ -123,6 +156,27 @@
     "asOfDateLabel": "Дата станом на",
     "saveButton": "Зберегти"
   },
+  "thesisPage": {
+    "title": "Теза",
+    "description": "Ваша інвестиційна теза щодо кожної компанії — чому ви вважаєте, що вона зростатиме. Спільна для всіх фреймворків.",
+    "noPositions": "Поки немає позицій — спочатку імпортуйте звіт.",
+    "contentLabel": "Теза",
+    "saveButton": "Зберегти",
+    "edgarCheckButton": "Перевірити оновлення",
+    "edgarNeverChecked": "Ще не перевірялося через SEC EDGAR.",
+    "edgarLastChecked": "Останній перевірений звіт: {date}",
+    "edgarUpToDate": "Уже актуально з часу останньої перевірки.",
+    "edgarVerdictImproving": "Тренд фінансів: покращується",
+    "edgarVerdictFlat": "Тренд фінансів: без змін",
+    "edgarVerdictDeteriorating": "Тренд фінансів: погіршується",
+    "thesisVerdictHolding": "Перевірка тези: теза все ще діє",
+    "thesisVerdictPartiallyWeakening": "Перевірка тези: частково слабшає",
+    "thesisVerdictBroken": "Перевірка тези: тезу порушено",
+    "thesisCheckSkippedNoThesis": "Тезу ще не написано — додайте її, щоб увімкнути AI-перевірку тези.",
+    "thesisCheckMissingApiKey": "Додайте OPENAI_API_KEY у .env.local, щоб увімкнути AI-перевірку тези.",
+    "thesisCheckRequestFailed": "AI-перевірка тези не вдалася — спробуйте пізніше.",
+    "thesisCheckInvalidResponse": "AI-перевірка тези повернула неочікувану відповідь — спробуйте пізніше."
+  },
   "errors": {
     "invalidFile": "Не вдалося прочитати цей файл як JSON-звіт Freedom Finance.",
     "genericImportError": "Під час імпорту звіту сталася помилка.",
@@ -140,12 +194,30 @@
       "groupFieldMustBeNumber": "Це поле має бути числом.",
       "ruleMetricKeyRequired": "Потрібно вказати метрику.",
       "ruleOperatorInvalid": "Нерозпізнаний оператор.",
+      "ruleTypeInvalid": "Нерозпізнаний тип правила.",
+      "ruleRoleInvalid": "Нерозпізнана роль.",
+      "ruleAllocationOutOfRange": "Розподіл має бути від 0 до 100.",
+      "ruleMinGreaterThanMax": "Мінімум розподілу не може бути більшим за максимум.",
+      "ruleGroupScopeNotAllowed": "Власний діапазон розподілу групи редагується у формі групи, а не в списку правил.",
+      "ruleGroupScopeCannotBeDeleted": "Власний діапазон розподілу групи не можна видалити окремо — видаліть групу.",
+      "rulePositionScopeAlreadyExists": "У цій групі вже є правило розподілу на рівні позиції — відредагуйте його замість створення нового.",
       "generic": "Щось пішло не так."
     },
     "metrics": {
       "metricKeyRequired": "Потрібно вказати метрику.",
       "metricValueMustBeNumber": "Значення метрики має бути числом.",
       "metricAsOfDateInvalid": "Це не дійсна дата.",
+      "generic": "Щось пішло не так."
+    },
+    "thesis": {
+      "generic": "Щось пішло не так."
+    },
+    "edgar": {
+      "missingUserAgent": "Додайте SEC_EDGAR_USER_AGENT у .env.local, щоб увімкнути перевірки EDGAR.",
+      "instrumentNotFound": "Щось пішло не так.",
+      "cikNotFound": "Не вдалося знайти CIK SEC для тікера «{ticker}».",
+      "noTrackedFilingFound": "Для цієї компанії на EDGAR не знайдено звіту 10-K/10-Q/20-F.",
+      "financialsUnavailable": "EDGAR не має порівнянних даних про виручку/чистий прибуток для останнього звіту.",
       "generic": "Щось пішло не так."
     }
   }

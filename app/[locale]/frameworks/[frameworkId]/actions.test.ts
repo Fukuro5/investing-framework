@@ -43,6 +43,26 @@ const buildFormData = (fields: Record<string, string>) => {
   return formData;
 };
 
+// Every group requires its own type='allocation', scope='group' rule
+// (PLANNING.md §1 Phase 1) — seeded alongside the group here so tests that
+// don't go through createGroupAction still start from a realistic shape.
+const seedGroup = async (overrides: { name?: string; minAllocation?: number; maxAllocation?: number; priority?: number } = {}) => {
+  const group = await testDb.prisma.frameworkGroup.create({
+    data: { frameworkId, name: overrides.name ?? "Core", priority: overrides.priority ?? 0 },
+  });
+  await testDb.prisma.groupRule.create({
+    data: {
+      groupId: group.id,
+      type: "allocation",
+      scope: "group",
+      minAllocation: overrides.minAllocation ?? 100,
+      maxAllocation: overrides.maxAllocation ?? 100,
+      role: "signal",
+    },
+  });
+  return group;
+};
+
 describe("updateFrameworkAction", () => {
   it("updates the name and description", async () => {
     const state = await updateFrameworkAction(
@@ -60,7 +80,7 @@ describe("updateFrameworkAction", () => {
 });
 
 describe("createGroupAction", () => {
-  it("creates a group from form fields", async () => {
+  it("creates a group and its required allocation band from form fields", async () => {
     const state = await createGroupAction(
       { status: "idle" } as FormState,
       buildFormData({ frameworkId, name: "Core", targetAllocationMin: "65", targetAllocationMax: "75", priority: "0" }),
@@ -69,7 +89,9 @@ describe("createGroupAction", () => {
 
     expect(state).toEqual({ status: "idle" });
     const group = await testDb.prisma.frameworkGroup.findFirstOrThrow();
-    expect(group).toMatchObject({ name: "Core", targetAllocationMin: 65, targetAllocationMax: 75, priority: 0 });
+    expect(group).toMatchObject({ name: "Core", priority: 0 });
+    const groupRule = await testDb.prisma.groupRule.findFirstOrThrow({ where: { groupId: group.id } });
+    expect(groupRule).toMatchObject({ type: "allocation", scope: "group", minAllocation: 65, maxAllocation: 75 });
   });
 
   it("returns a translated error for a non-numeric field instead of throwing", async () => {
@@ -86,10 +108,8 @@ describe("createGroupAction", () => {
 });
 
 describe("updateGroupAction", () => {
-  it("updates the group's band and priority", async () => {
-    const group = await testDb.prisma.frameworkGroup.create({
-      data: { frameworkId, name: "Core", targetAllocationMin: 65, targetAllocationMax: 75, priority: 0 },
-    });
+  it("updates the group's priority and its allocation band", async () => {
+    const group = await seedGroup({ minAllocation: 65, maxAllocation: 75 });
 
     const state = await updateGroupAction(
       { status: "idle" } as FormState,
@@ -98,19 +118,15 @@ describe("updateGroupAction", () => {
     );
 
     expect(state).toEqual({ status: "idle" });
-    expect(await testDb.prisma.frameworkGroup.findUniqueOrThrow({ where: { id: group.id } })).toMatchObject({
-      targetAllocationMin: 60,
-      targetAllocationMax: 80,
-      priority: 1,
-    });
+    expect(await testDb.prisma.frameworkGroup.findUniqueOrThrow({ where: { id: group.id } })).toMatchObject({ priority: 1 });
+    const groupRule = await testDb.prisma.groupRule.findFirstOrThrow({ where: { groupId: group.id } });
+    expect(groupRule).toMatchObject({ minAllocation: 60, maxAllocation: 80 });
   });
 });
 
 describe("deleteGroupAction", () => {
   it("returns a translated error and keeps the group when it has assignments", async () => {
-    const group = await testDb.prisma.frameworkGroup.create({
-      data: { frameworkId, name: "Core", targetAllocationMin: 100, targetAllocationMax: 100, priority: 0 },
-    });
+    const group = await seedGroup();
     const instrument = await testDb.prisma.instrument.create({
       data: { ticker: "TSM.US", name: "TSM", assetType: "unknown", currency: "USD" },
     });
@@ -132,9 +148,7 @@ describe("deleteGroupAction", () => {
 
 describe("assignInstrumentAction", () => {
   it("assigns the instrument to the selected group", async () => {
-    const group = await testDb.prisma.frameworkGroup.create({
-      data: { frameworkId, name: "Core", targetAllocationMin: 100, targetAllocationMax: 100, priority: 0 },
-    });
+    const group = await seedGroup();
     const instrument = await testDb.prisma.instrument.create({
       data: { ticker: "TSM.US", name: "TSM", assetType: "unknown", currency: "USD" },
     });
@@ -148,9 +162,7 @@ describe("assignInstrumentAction", () => {
   });
 
   it("removes the assignment when the sentinel unclassified value is selected", async () => {
-    const group = await testDb.prisma.frameworkGroup.create({
-      data: { frameworkId, name: "Core", targetAllocationMin: 100, targetAllocationMax: 100, priority: 0 },
-    });
+    const group = await seedGroup();
     const instrument = await testDb.prisma.instrument.create({
       data: { ticker: "TSM.US", name: "TSM", assetType: "unknown", currency: "USD" },
     });
@@ -170,68 +182,94 @@ describe("assignInstrumentAction", () => {
 });
 
 describe("createRuleAction", () => {
-  it("creates a rule from form fields", async () => {
-    const group = await testDb.prisma.frameworkGroup.create({
-      data: { frameworkId, name: "Core", targetAllocationMin: 100, targetAllocationMax: 100, priority: 0 },
-    });
+  it("creates a metric rule from form fields", async () => {
+    const group = await seedGroup();
 
     const state = await createRuleAction(
       { status: "idle" } as FormState,
-      buildFormData({ groupId: group.id, metricKey: "roic", operator: "gt", threshold: "15" }),
+      buildFormData({ groupId: group.id, type: "metric", metricKey: "roic", operator: "gt", threshold: "15", role: "classification" }),
       testDb.prisma,
     );
 
     expect(state).toEqual({ status: "idle" });
-    const rule = await testDb.prisma.groupRule.findFirstOrThrow();
+    const rule = await testDb.prisma.groupRule.findFirstOrThrow({ where: { type: "metric" } });
     expect(rule).toMatchObject({ metricKey: "roic", operator: "gt", threshold: 15, role: "classification" });
   });
 
   it("returns a translated error for an invalid operator instead of throwing", async () => {
-    const group = await testDb.prisma.frameworkGroup.create({
-      data: { frameworkId, name: "Core", targetAllocationMin: 100, targetAllocationMax: 100, priority: 0 },
-    });
+    const group = await seedGroup();
 
     const state = await createRuleAction(
       { status: "idle" } as FormState,
-      buildFormData({ groupId: group.id, metricKey: "roic", operator: "between", threshold: "15" }),
+      buildFormData({ groupId: group.id, type: "metric", metricKey: "roic", operator: "between", threshold: "15", role: "classification" }),
       testDb.prisma,
     );
 
     expect(state.status).toBe("error");
     expect(state.errorMessage).toContain("ruleOperatorInvalid");
   });
+
+  it("creates a position-scoped allocation rule from form fields", async () => {
+    const group = await seedGroup();
+
+    const state = await createRuleAction(
+      { status: "idle" } as FormState,
+      buildFormData({ groupId: group.id, type: "allocation", minAllocation: "0", maxAllocation: "15" }),
+      testDb.prisma,
+    );
+
+    expect(state).toEqual({ status: "idle" });
+    const rule = await testDb.prisma.groupRule.findFirstOrThrow({ where: { scope: "position" } });
+    expect(rule).toMatchObject({ type: "allocation", scope: "position", minAllocation: 0, maxAllocation: 15, role: "signal" });
+  });
 });
 
 describe("updateRuleAction", () => {
-  it("updates the threshold and active flag", async () => {
-    const group = await testDb.prisma.frameworkGroup.create({
-      data: { frameworkId, name: "Core", targetAllocationMin: 100, targetAllocationMax: 100, priority: 0 },
-    });
+  it("updates a metric rule's threshold, role, and active flag", async () => {
+    const group = await seedGroup();
     const rule = await testDb.prisma.groupRule.create({
-      data: { groupId: group.id, metricKey: "roic", operator: "gt", threshold: 15, role: "classification", isActive: true },
+      data: { groupId: group.id, type: "metric", metricKey: "roic", operator: "gt", threshold: 15, role: "classification", isActive: true },
     });
 
     const state = await updateRuleAction(
       { status: "idle" } as FormState,
-      buildFormData({ ruleId: rule.id, metricKey: "roic", operator: "gt", threshold: "20" }),
+      buildFormData({ ruleId: rule.id, type: "metric", metricKey: "roic", operator: "gt", threshold: "20", role: "signal" }),
       testDb.prisma,
     );
 
     expect(state).toEqual({ status: "idle" });
     expect(await testDb.prisma.groupRule.findUniqueOrThrow({ where: { id: rule.id } })).toMatchObject({
       threshold: 20,
+      role: "signal",
       isActive: false,
+    });
+  });
+
+  it("updates a position-scoped allocation rule's band", async () => {
+    const group = await seedGroup();
+    const rule = await testDb.prisma.groupRule.create({
+      data: { groupId: group.id, type: "allocation", scope: "position", minAllocation: 0, maxAllocation: 10, role: "signal" },
+    });
+
+    const state = await updateRuleAction(
+      { status: "idle" } as FormState,
+      buildFormData({ ruleId: rule.id, type: "allocation", minAllocation: "0", maxAllocation: "20" }),
+      testDb.prisma,
+    );
+
+    expect(state).toEqual({ status: "idle" });
+    expect(await testDb.prisma.groupRule.findUniqueOrThrow({ where: { id: rule.id } })).toMatchObject({
+      minAllocation: 0,
+      maxAllocation: 20,
     });
   });
 });
 
 describe("deleteRuleAction", () => {
   it("deletes the rule", async () => {
-    const group = await testDb.prisma.frameworkGroup.create({
-      data: { frameworkId, name: "Core", targetAllocationMin: 100, targetAllocationMax: 100, priority: 0 },
-    });
+    const group = await seedGroup();
     const rule = await testDb.prisma.groupRule.create({
-      data: { groupId: group.id, metricKey: "roic", operator: "gt", threshold: 15, role: "classification", isActive: true },
+      data: { groupId: group.id, type: "metric", metricKey: "roic", operator: "gt", threshold: 15, role: "classification", isActive: true },
     });
 
     const state = await deleteRuleAction({ status: "idle" } as DeleteActionState, buildFormData({ ruleId: rule.id }), testDb.prisma);
@@ -239,15 +277,28 @@ describe("deleteRuleAction", () => {
     expect(state).toEqual({ status: "idle" });
     expect(await testDb.prisma.groupRule.findUnique({ where: { id: rule.id } })).toBeNull();
   });
+
+  it("returns a translated error and keeps the rule when trying to delete a group's own allocation band", async () => {
+    const group = await seedGroup();
+    const groupRule = await testDb.prisma.groupRule.findFirstOrThrow({ where: { groupId: group.id } });
+
+    const state = await deleteRuleAction(
+      { status: "idle" } as DeleteActionState,
+      buildFormData({ ruleId: groupRule.id }),
+      testDb.prisma,
+    );
+
+    expect(state.status).toBe("error");
+    expect(state.errorMessage).toContain("ruleGroupScopeCannotBeDeleted");
+    expect(await testDb.prisma.groupRule.findUnique({ where: { id: groupRule.id } })).not.toBeNull();
+  });
 });
 
 describe("evaluateFrameworkAction", () => {
   it("classifies positions, returning the count", async () => {
-    const group = await testDb.prisma.frameworkGroup.create({
-      data: { frameworkId, name: "Core", targetAllocationMin: 100, targetAllocationMax: 100, priority: 0 },
-    });
+    const group = await seedGroup();
     await testDb.prisma.groupRule.create({
-      data: { groupId: group.id, metricKey: "roic", operator: "gt", threshold: 15, role: "classification", isActive: true },
+      data: { groupId: group.id, type: "metric", metricKey: "roic", operator: "gt", threshold: 15, role: "classification", isActive: true },
     });
     const broker = await testDb.prisma.broker.create({ data: { name: "freedom-finance" } });
     const account = await testDb.prisma.account.create({

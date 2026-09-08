@@ -23,6 +23,9 @@ export const Nav = () => {
           <Link href="/metrics" className="text-sm hover:underline">
             {tNav('metricsLink')}
           </Link>
+          <Link href="/thesis" className="text-sm hover:underline">
+            {tNav('thesisLink')}
+          </Link>
         </div>
         <LanguageSwitcher />
       </div>

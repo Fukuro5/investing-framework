@@ -7,14 +7,16 @@ import { withAllocationPercent } from "@/lib/dashboard/allocation";
 import { getPositions } from "@/lib/dashboard/get-positions";
 import { getActiveFrameworkAllocations } from "@/lib/frameworks/get-group-allocations";
 import { listFrameworks } from "@/lib/frameworks/list-frameworks";
+import { getActiveFrameworkPositionSignals } from "@/lib/signals/get-active-framework-position-signals";
 
 const DashboardPage = async ({ params }: PageProps<"/[locale]">) => {
   const { locale } = await params;
   const t = await getTranslations("dashboardPage");
-  const [positions, frameworks, activeFrameworkAllocations] = await Promise.all([
+  const [positions, frameworks, activeFrameworkAllocations, activeFrameworkPositionSignals] = await Promise.all([
     withAllocationPercent(await getPositions()),
     listFrameworks(),
     getActiveFrameworkAllocations(),
+    getActiveFrameworkPositionSignals(),
   ]);
   const activeFramework = frameworks.find((framework) => framework.isActive) ?? null;
 
@@ -22,7 +24,7 @@ const DashboardPage = async ({ params }: PageProps<"/[locale]">) => {
     <div className="px-6 py-8">
       <h1 className="text-2xl font-semibold">{t("title")}</h1>
       <RefreshMarketDataButton />
-      <PositionsTable positions={positions} locale={locale} />
+      <PositionsTable positions={positions} signals={activeFrameworkPositionSignals?.signalByInstrumentId ?? null} locale={locale} />
       <FrameworkSwitcher frameworks={frameworks} activeFrameworkId={activeFramework?.id ?? null} />
       {activeFrameworkAllocations && <GroupAllocationSummary allocations={activeFrameworkAllocations} locale={locale} />}
     </div>

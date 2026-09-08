@@ -24,6 +24,9 @@ const validate = (input: UpdateGroupInput) => {
   }
 };
 
+// Updates the group's required type='allocation', scope='group' rule
+// alongside the group itself (see create-group.ts) rather than routing
+// band edits through the generic rule UI.
 export const updateGroup = async (input: UpdateGroupInput, db: PrismaClient = prisma) => {
   validate(input);
   const name = input.name.trim();
@@ -39,13 +42,17 @@ export const updateGroup = async (input: UpdateGroupInput, db: PrismaClient = pr
     }
   }
 
-  return db.frameworkGroup.update({
-    where: { id: input.groupId },
-    data: {
-      name,
-      targetAllocationMin: input.targetAllocationMin,
-      targetAllocationMax: input.targetAllocationMax,
-      priority: input.priority,
-    },
+  return db.$transaction(async (tx) => {
+    const group = await tx.frameworkGroup.update({
+      where: { id: input.groupId },
+      data: { name, priority: input.priority },
+    });
+
+    await tx.groupRule.updateMany({
+      where: { groupId: input.groupId, type: "allocation", scope: "group" },
+      data: { minAllocation: input.targetAllocationMin, maxAllocation: input.targetAllocationMax },
+    });
+
+    return group;
   });
 };

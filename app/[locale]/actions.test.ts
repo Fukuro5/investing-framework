@@ -80,10 +80,10 @@ describe("refreshMarketDataAction", () => {
     });
     const framework = await testDb.prisma.framework.create({ data: { name: "Quality", isActive: true } });
     const group = await testDb.prisma.frameworkGroup.create({
-      data: { frameworkId: framework.id, name: "Core", targetAllocationMin: 0, targetAllocationMax: 100, priority: 0 },
+      data: { frameworkId: framework.id, name: "Core", priority: 0 },
     });
     await testDb.prisma.groupRule.create({
-      data: { groupId: group.id, metricKey: "roic", operator: "gt", threshold: 15, role: "classification", isActive: true },
+      data: { groupId: group.id, type: "metric", metricKey: "roic", operator: "gt", threshold: 15, role: "classification", isActive: true },
     });
 
     await refreshMarketDataAction(
@@ -133,13 +133,21 @@ describe("refreshMarketDataAction", () => {
     });
     const framework = await testDb.prisma.framework.create({ data: { name: "Quality", isActive: true } });
     const group = await testDb.prisma.frameworkGroup.create({
-      data: { frameworkId: framework.id, name: "Core", targetAllocationMin: 0, targetAllocationMax: 100, priority: 0 },
+      data: { frameworkId: framework.id, name: "Core", priority: 0 },
     });
     // An operator this malformed can only reach the DB by bypassing the
     // CRUD UI's validation — used here purely to force classifyInstruments
     // to throw so the action's catch-all error path is exercised.
     await testDb.prisma.groupRule.create({
-      data: { groupId: group.id, metricKey: "roic", operator: "not-a-real-operator", threshold: 15, role: "classification", isActive: true },
+      data: {
+        groupId: group.id,
+        type: "metric",
+        metricKey: "roic",
+        operator: "not-a-real-operator",
+        threshold: 15,
+        role: "classification",
+        isActive: true,
+      },
     });
 
     const state = await refreshMarketDataAction(

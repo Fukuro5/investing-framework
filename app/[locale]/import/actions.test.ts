@@ -55,16 +55,20 @@ describe.skipIf(!hasFixture)("importStatement (real fixture, isolated test datab
 
     const state = await importStatement(IDLE_STATE, buildFormData(file), testDb.prisma);
 
-    expect(state).toEqual({ status: "success", transactionCount: 2, positionCount: 2 });
+    expect(state).toEqual({ status: "success", transactionCount: 0, positionCount: 2 });
   });
 
-  it("reports no-new-transactions when the same statement is imported twice", async () => {
+  // Position snapshots are broker-reported truth as of a date, so
+  // re-importing the same period's statement refreshes the row rather than
+  // deduping/skipping it (see upsertPositionSnapshots) — unlike Transaction,
+  // this parser doesn't import any Transaction rows to dedupe at all.
+  it("re-ingests the same statement without failing, refreshing the position snapshots", async () => {
     const bytes = readFileSync(FIXTURE_PATH);
     const file = () => new File([bytes], "freedom-finance-2026-07.json", { type: "application/json" });
 
     await importStatement(IDLE_STATE, buildFormData(file()), testDb.prisma);
     const second = await importStatement(IDLE_STATE, buildFormData(file()), testDb.prisma);
 
-    expect(second).toEqual({ status: "no-new-transactions" });
+    expect(second).toEqual({ status: "success", transactionCount: 0, positionCount: 2 });
   });
 });

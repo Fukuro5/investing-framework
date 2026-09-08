@@ -9,7 +9,14 @@ export type FrameworkErrorCode =
   | "groupsNotFullyAllocated"
   | "groupFieldMustBeNumber"
   | "ruleMetricKeyRequired"
-  | "ruleOperatorInvalid";
+  | "ruleOperatorInvalid"
+  | "ruleTypeInvalid"
+  | "ruleRoleInvalid"
+  | "ruleAllocationOutOfRange"
+  | "ruleMinGreaterThanMax"
+  | "ruleGroupScopeNotAllowed"
+  | "ruleGroupScopeCannotBeDeleted"
+  | "rulePositionScopeAlreadyExists";
 
 // `message` is for logs/tests (readable, stable-enough to assert on);
 // `code` + `params` are what Server Actions use to look up a translated,

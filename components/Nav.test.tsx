@@ -26,6 +26,7 @@ describe("Nav", () => {
     expect(screen.getByRole("link", { name: "Dashboard" })).toHaveAttribute("href", "/en");
     expect(screen.getByRole("link", { name: "Import" })).toHaveAttribute("href", "/en/import");
     expect(screen.getByRole("link", { name: "Frameworks" })).toHaveAttribute("href", "/en/frameworks");
+    expect(screen.getByRole("link", { name: "Thesis" })).toHaveAttribute("href", "/en/thesis");
   });
 
   it("renders the language switcher with the active locale highlighted", () => {

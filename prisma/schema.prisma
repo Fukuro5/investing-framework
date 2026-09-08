@@ -44,12 +44,23 @@ model Instrument {
   currency  String
   exchange  String?
 
+  // SEC EDGAR tracking (PLANNING.md §1 Phase 3): cik is resolved once via
+  // the ticker->CIK lookup and cached here so it's never re-fetched; the
+  // last-checked fields are the small pointer the manual "check for
+  // updates" trigger compares against before doing any real fetch/compute
+  // work (§1 Phase 3's new-filing-gated trigger model).
+  edgarCik                   String?
+  lastCheckedFilingDate      DateTime?
+  lastCheckedAccessionNumber String?
+
   transactions      Transaction[]
   positionSnapshots PositionSnapshot[]
   priceSnapshots    PriceSnapshot[]
   metricValues      MetricValue[]
   groupAssignments  InstrumentGroupAssignment[]
   signals           Signal[]
+  thesis            Thesis?
+  thesisVerdicts    ThesisVerdict[]
 }
 
 // One row per uploaded broker statement. Dedup happens at the Transaction
@@ -160,15 +171,15 @@ model Framework {
 }
 
 // A framework's groups' allocation bands must sum to 100% — enforced by
-// the Phase 4 CRUD UI, not by the schema (PLANNING.md §3/§9).
+// the Phase 4 CRUD UI, not by the schema (PLANNING.md §3/§9). The band
+// itself now lives on GroupRule (type='allocation', scope='group') rather
+// than as columns here (PLANNING.md §1 Phase 1).
 model FrameworkGroup {
-  id                  String    @id @default(cuid())
-  frameworkId         String
-  framework           Framework @relation(fields: [frameworkId], references: [id])
-  name                String
-  targetAllocationMin Float
-  targetAllocationMax Float
-  priority            Int
+  id          String    @id @default(cuid())
+  frameworkId String
+  framework   Framework @relation(fields: [frameworkId], references: [id])
+  name        String
+  priority    Int
 
   rules       GroupRule[]
   assignments InstrumentGroupAssignment[]
@@ -176,15 +187,27 @@ model FrameworkGroup {
   @@unique([frameworkId, name])
 }
 
+// Unified rule table (PLANNING.md §1 Phase 1): `type` discriminates
+// allocation rules (group- or position-scoped min/max) from metric rules
+// (metricKey/operator/threshold, the pre-existing shape). Exactly one
+// column set is populated per type — the other stays null.
 model GroupRule {
-  id        String         @id @default(cuid())
-  groupId   String
-  group     FrameworkGroup @relation(fields: [groupId], references: [id])
-  metricKey String
-  operator  String
-  threshold Float
-  role      String
-  isActive  Boolean        @default(true)
+  id            String         @id @default(cuid())
+  groupId       String
+  group         FrameworkGroup @relation(fields: [groupId], references: [id])
+  type          String
+  // Only for type='allocation': 'group' (one required per group, the
+  // group's own target band) or 'position' (optional uniform band applied
+  // to every position currently in the group).
+  scope         String?
+  minAllocation Float?
+  maxAllocation Float?
+  // Only for type='metric'.
+  metricKey     String?
+  operator      String?
+  threshold     Float?
+  role          String
+  isActive      Boolean        @default(true)
 
   signals Signal[]
 }
@@ -218,4 +241,32 @@ model Signal {
   evaluatedAt  DateTime   @default(now())
   status       String
   message      String?
+}
+
+// One thesis per Instrument, shared across every framework — not
+// versioned, just editable in place (PLANNING.md §1 Phase 2).
+model Thesis {
+  id           String     @id @default(cuid())
+  instrumentId String     @unique
+  instrument   Instrument @relation(fields: [instrumentId], references: [id])
+  content      String
+  updatedAt    DateTime   @updatedAt
+}
+
+// AI thesis-vs-filing verdicts (PLANNING.md §1 Phase 4). One row per
+// checked filing — upserted on (instrumentId, accessionNumber) for
+// idempotency; history accumulates naturally as new filings get checked.
+// "Latest" is resolved the same way as resolveMetricValue (asOfDate desc,
+// fetchedAt desc) — see lib/thesis/get-latest-thesis-verdict.ts.
+model ThesisVerdict {
+  id              String     @id @default(cuid())
+  instrumentId    String
+  instrument      Instrument @relation(fields: [instrumentId], references: [id])
+  verdict         String     // "holding" | "partiallyWeakening" | "broken" — lib/ai/types.ts
+  explanation     String
+  accessionNumber String
+  asOfDate        DateTime
+  fetchedAt       DateTime   @default(now())
+
+  @@unique([instrumentId, accessionNumber])
 }

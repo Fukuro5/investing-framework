@@ -10,7 +10,7 @@ const hasFixture = existsSync(FIXTURE_PATH);
 // won't exist on a fresh clone or in CI, so this suite skips rather than
 // fails when it's absent instead of depending on personal data being present.
 describe.skipIf(!hasFixture)("parseFreedomFinanceStatement (real fixture)", () => {
-  it("parses account info, period, position snapshots, and transactions", () => {
+  it("parses account info, period, and position snapshots", () => {
     const file = readFileSync(FIXTURE_PATH);
     const statement = parseFreedomFinanceStatement(file);
 
@@ -21,44 +21,9 @@ describe.skipIf(!hasFixture)("parseFreedomFinanceStatement (real fixture)", () =
       end: new Date("2026-07-31T23:59:59.000Z"),
     });
 
-    // No trades in this period's real sample — only the position snapshot
-    // and dividend/tax activity are exercised end-to-end here.
-    expect(statement.transactions).toEqual([
-      {
-        brokerRef: "3690173612",
-        type: "dividend",
-        date: new Date("2026-07-14T11:42:25.000Z"),
-        instrument: {
-          ticker: "TSM.US",
-          isin: "US8740391003",
-          name: "TSM.US",
-          assetType: "unknown",
-          currency: "USD",
-          exchange: null,
-        },
-        quantity: 5,
-        price: 0.939325,
-        fees: 0,
-        currency: "USD",
-      },
-      {
-        brokerRef: "tax:2026-06-11_35_TSM.US_0.939325",
-        type: "tax",
-        date: new Date("2026-07-14T11:42:25.000Z"),
-        instrument: {
-          ticker: "TSM.US",
-          isin: "US8740391003",
-          name: "TSM.US",
-          assetType: "unknown",
-          currency: "USD",
-          exchange: null,
-        },
-        quantity: 1,
-        price: 0.99,
-        fees: null,
-        currency: "USD",
-      },
-    ]);
+    // This app only imports position snapshots, not trades or cash
+    // movements (dividends, deposits, withdrawals).
+    expect(statement.transactions).toEqual([]);
 
     expect(statement.positionSnapshots).toHaveLength(2);
     expect(statement.positionSnapshots[0]).toMatchObject({
@@ -89,9 +54,6 @@ describe("parseFreedomFinanceStatement (error handling)", () => {
       plainAccountInfoData: { base_currency: "USD", client_code: "000" },
       account_at_start: { date: "2026-01-01", account: { positions_from_ts: { ps: { acc: [] } } } },
       account_at_end: { date: "2026-01-31", account: { positions_from_ts: { ps: { acc: [] } } } },
-      trades: { detailed: [] },
-      cash_in_outs: [],
-      corporate_actions: { detailed: [] },
     };
 
     expect(() => parseFreedomFinanceStatement(JSON.stringify(incomplete))).toThrow(

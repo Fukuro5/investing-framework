@@ -23,7 +23,16 @@ describe("createGroup", () => {
       testDb.prisma,
     );
 
-    expect(group).toMatchObject({ name: "Core", targetAllocationMin: 65, targetAllocationMax: 75, priority: 0 });
+    expect(group).toMatchObject({ name: "Core", priority: 0 });
+
+    const groupRule = await testDb.prisma.groupRule.findFirstOrThrow({ where: { groupId: group.id } });
+    expect(groupRule).toMatchObject({
+      type: "allocation",
+      scope: "group",
+      minAllocation: 65,
+      maxAllocation: 75,
+      role: "signal",
+    });
   });
 
   it("throws when min is greater than max", async () => {

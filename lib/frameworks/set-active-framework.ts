@@ -17,12 +17,17 @@ export class GroupsNotFullyAllocatedError extends FrameworkError {
 // validate-groups-total.ts for why it isn't enforced on every individual
 // group edit instead.
 export const setActiveFramework = async (frameworkId: string, db: PrismaClient = prisma) => {
-  const groups = await db.frameworkGroup.findMany({
-    where: { frameworkId },
-    select: { targetAllocationMin: true, targetAllocationMax: true },
+  const groupRules = await db.groupRule.findMany({
+    where: { type: "allocation", scope: "group", group: { frameworkId } },
+    select: { minAllocation: true, maxAllocation: true },
   });
 
-  if (!validateGroupsTotal(groups).isValid) {
+  const isPopulatedBand = (
+    rule: (typeof groupRules)[number],
+  ): rule is { minAllocation: number; maxAllocation: number } =>
+    rule.minAllocation !== null && rule.maxAllocation !== null;
+
+  if (!validateGroupsTotal(groupRules.filter(isPopulatedBand)).isValid) {
     throw new GroupsNotFullyAllocatedError(frameworkId);
   }
 
