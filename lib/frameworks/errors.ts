@@ -12,7 +12,6 @@ export type FrameworkErrorCode =
   | "ruleMetricKeyInvalid"
   | "ruleOperatorInvalid"
   | "ruleTypeInvalid"
-  | "ruleRoleInvalid"
   | "ruleAllocationOutOfRange"
   | "ruleMinGreaterThanMax"
   | "ruleGroupScopeNotAllowed"

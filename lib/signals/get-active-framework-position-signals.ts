@@ -28,7 +28,6 @@ interface GroupWithRules {
   rules: {
     type: string;
     scope: string | null;
-    role: string;
     isActive: boolean;
     metricKey: string | null;
     operator: string | null;
@@ -38,12 +37,14 @@ interface GroupWithRules {
   }[];
 }
 
+// Every active type='metric' rule doubles as a signal rule (PLANNING.md §1
+// Phase 4) — there's no separate role to filter on.
 const evaluateSignalMetricRules = async (
   instrumentId: string,
   rules: GroupWithRules["rules"],
   db: PrismaClient,
 ): Promise<{ statuses: RuleEvaluationStatus[]; underperformingMetricKeys: string[] }> => {
-  const signalMetricRules = rules.filter((rule) => rule.type === "metric" && rule.role === "signal" && rule.isActive);
+  const signalMetricRules = rules.filter((rule) => rule.type === "metric" && rule.isActive);
 
   const statuses = await Promise.all(
     signalMetricRules.map(async (rule): Promise<RuleEvaluationStatus> => {
@@ -98,7 +99,7 @@ const computeSignalForPosition = async (
     thesisVerdict: thesis?.verdict ?? null,
     thesisExplanation: thesis?.explanation ?? null,
     underperformingMetricKeys,
-    totalSignalMetricRuleCount: group.rules.filter((rule) => rule.type === "metric" && rule.role === "signal" && rule.isActive).length,
+    totalSignalMetricRuleCount: group.rules.filter((rule) => rule.type === "metric" && rule.isActive).length,
     allocationPercent: position.allocationPercent,
     allocationBand,
   };

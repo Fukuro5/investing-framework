@@ -83,7 +83,7 @@ describe("refreshMarketDataAction", () => {
       data: { frameworkId: framework.id, name: "Core", priority: 0 },
     });
     await testDb.prisma.groupRule.create({
-      data: { groupId: group.id, type: "metric", metricKey: "roic", operator: "gt", threshold: 15, role: "classification", isActive: true },
+      data: { groupId: group.id, type: "metric", metricKey: "roic", operator: "gt", threshold: 15, isActive: true },
     });
 
     await refreshMarketDataAction(
@@ -145,7 +145,6 @@ describe("refreshMarketDataAction", () => {
         metricKey: "roic",
         operator: "not-a-real-operator",
         threshold: 15,
-        role: "classification",
         isActive: true,
       },
     });

@@ -13,7 +13,7 @@ beforeEach(async () => {
   });
   groupId = group.id;
   await testDb.prisma.groupRule.create({
-    data: { groupId, type: "allocation", scope: "group", minAllocation: 100, maxAllocation: 100, role: "signal" },
+    data: { groupId, type: "allocation", scope: "group", minAllocation: 100, maxAllocation: 100 },
   });
 });
 
@@ -22,65 +22,40 @@ afterEach(async () => {
 });
 
 describe("createRule", () => {
-  it("creates a metric rule with a trimmed metric key, defaulting role as requested", async () => {
-    const rule = await createRule(
-      { groupId, type: "metric", metricKey: " roic ", operator: "gt", threshold: 15, role: "classification" },
-      testDb.prisma,
-    );
+  it("creates a metric rule with a trimmed metric key", async () => {
+    const rule = await createRule({ groupId, type: "metric", metricKey: " roic ", operator: "gt", threshold: 15 }, testDb.prisma);
 
     expect(rule).toMatchObject({
       type: "metric",
       metricKey: "roic",
       operator: "gt",
       threshold: 15,
-      role: "classification",
       isActive: true,
     });
   });
 
-  it("creates a signal-role metric rule", async () => {
-    const rule = await createRule(
-      { groupId, type: "metric", metricKey: "roic", operator: "gt", threshold: 15, role: "signal" },
-      testDb.prisma,
-    );
-
-    expect(rule).toMatchObject({ role: "signal" });
-  });
-
   it("throws for a blank metric key", async () => {
     await expect(
-      createRule({ groupId, type: "metric", metricKey: "  ", operator: "gt", threshold: 15, role: "classification" }, testDb.prisma),
+      createRule({ groupId, type: "metric", metricKey: "  ", operator: "gt", threshold: 15 }, testDb.prisma),
     ).rejects.toThrow(/Metric key is required/);
   });
 
   it("throws for a metric key not in the catalog", async () => {
     await expect(
-      createRule(
-        { groupId, type: "metric", metricKey: "notARealMetric", operator: "gt", threshold: 15, role: "classification" },
-        testDb.prisma,
-      ),
+      createRule({ groupId, type: "metric", metricKey: "notARealMetric", operator: "gt", threshold: 15 }, testDb.prisma),
     ).rejects.toThrow(/Unrecognized metric key/);
   });
 
   it("throws for an invalid operator", async () => {
     await expect(
-      createRule(
-        { groupId, type: "metric", metricKey: "roic", operator: "between", threshold: 15, role: "classification" },
-        testDb.prisma,
-      ),
+      createRule({ groupId, type: "metric", metricKey: "roic", operator: "between", threshold: 15 }, testDb.prisma),
     ).rejects.toThrow(/Unrecognized operator/);
   });
 
-  it("throws for an invalid role", async () => {
-    await expect(
-      createRule({ groupId, type: "metric", metricKey: "roic", operator: "gt", threshold: 15, role: "unknown" }, testDb.prisma),
-    ).rejects.toThrow(/Unrecognized role/);
-  });
-
-  it("creates a position-scoped allocation rule, always with role='signal'", async () => {
+  it("creates a position-scoped allocation rule", async () => {
     const rule = await createRule({ groupId, type: "allocation", minAllocation: 0, maxAllocation: 15 }, testDb.prisma);
 
-    expect(rule).toMatchObject({ type: "allocation", scope: "position", minAllocation: 0, maxAllocation: 15, role: "signal" });
+    expect(rule).toMatchObject({ type: "allocation", scope: "position", minAllocation: 0, maxAllocation: 15 });
   });
 
   it("throws when the allocation band is outside 0-100", async () => {

@@ -133,11 +133,6 @@
       "eq": "= (дорівнює)"
     },
     "ruleThresholdLabel": "Порогове значення",
-    "ruleRoleLabel": "Роль",
-    "ruleRoles": {
-      "classification": "Класифікація (визначає членство в групі)",
-      "signal": "Сигнал (визначає скоротити/докупити/продати/тримати)"
-    },
     "ruleMinAllocationLabel": "Мін. % на позицію",
     "ruleMaxAllocationLabel": "Макс. % на позицію",
     "ruleActiveLabel": "Активне",
@@ -149,7 +144,9 @@
     "instrumentColumn": "Інструмент",
     "groupColumn": "Група",
     "unclassifiedOption": "Без категорії",
-    "saveAssignmentButton": "Зберегти"
+    "saveAssignmentButton": "Зберегти",
+    "manualAssignmentBadge": "Вручну з {date}",
+    "revertToAutoButton": "Повернути до авто"
   },
   "metricsPage": {
     "title": "Метрики",
@@ -204,7 +201,6 @@
       "ruleMetricKeyInvalid": "Нерозпізнаний ключ метрики.",
       "ruleOperatorInvalid": "Нерозпізнаний оператор.",
       "ruleTypeInvalid": "Нерозпізнаний тип правила.",
-      "ruleRoleInvalid": "Нерозпізнана роль.",
       "ruleAllocationOutOfRange": "Розподіл має бути від 0 до 100.",
       "ruleMinGreaterThanMax": "Мінімум розподілу не може бути більшим за максимум.",
       "ruleGroupScopeNotAllowed": "Власний діапазон розподілу групи редагується у формі групи, а не в списку правил.",

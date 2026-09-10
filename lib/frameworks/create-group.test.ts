@@ -31,7 +31,6 @@ describe("createGroup", () => {
       scope: "group",
       minAllocation: 65,
       maxAllocation: 75,
-      role: "signal",
     });
   });
 

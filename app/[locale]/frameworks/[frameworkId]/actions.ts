@@ -12,6 +12,7 @@ import { deleteGroup } from "@/lib/frameworks/delete-group";
 import { deleteRule } from "@/lib/frameworks/delete-rule";
 import { FrameworkError } from "@/lib/frameworks/errors";
 import { resolveFrameworkErrorMessage } from "@/lib/frameworks/resolve-error-message";
+import { revertAssignmentToAuto } from "@/lib/frameworks/revert-assignment-to-auto";
 import { updateFramework } from "@/lib/frameworks/update-framework";
 import { updateGroup } from "@/lib/frameworks/update-group";
 import { updateRule } from "@/lib/frameworks/update-rule";
@@ -131,6 +132,13 @@ export const assignInstrumentAction = async (formData: FormData, db: PrismaClien
   await assignInstrument({ frameworkId, groupId, instrumentId }, db);
 };
 
+export const revertToAutoAction = async (formData: FormData, db: PrismaClient = prisma): Promise<void> => {
+  const frameworkId = String(formData.get("frameworkId") ?? "");
+  const instrumentId = String(formData.get("instrumentId") ?? "");
+
+  await revertAssignmentToAuto(frameworkId, instrumentId, db);
+};
+
 export const createRuleAction = async (
   _previousState: FormState,
   formData: FormData,
@@ -157,7 +165,6 @@ export const createRuleAction = async (
           metricKey: String(formData.get("metricKey") ?? ""),
           operator: String(formData.get("operator") ?? ""),
           threshold: readNumber(formData, "threshold"),
-          role: String(formData.get("role") ?? ""),
         },
         db,
       );
@@ -197,7 +204,6 @@ export const updateRuleAction = async (
           metricKey: String(formData.get("metricKey") ?? ""),
           operator: String(formData.get("operator") ?? ""),
           threshold: readNumber(formData, "threshold"),
-          role: String(formData.get("role") ?? ""),
           isActive,
         },
         db,

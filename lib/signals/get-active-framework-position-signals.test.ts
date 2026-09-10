@@ -78,13 +78,13 @@ describe("getActiveFrameworkPositionSignals", () => {
       { frameworkId: framework.id, name: "Core", targetAllocationMin: 0, targetAllocationMax: 100, priority: 0 },
       testDb.prisma,
     );
-    await createRule({ groupId: core.id, type: "metric", metricKey: "roic", operator: "gt", threshold: 15, role: "signal" }, testDb.prisma);
+    await createRule({ groupId: core.id, type: "metric", metricKey: "roic", operator: "gt", threshold: 15 }, testDb.prisma);
     await createRule(
-      { groupId: core.id, type: "metric", metricKey: "freeCashFlowYield", operator: "gt", threshold: 0, role: "signal" },
+      { groupId: core.id, type: "metric", metricKey: "freeCashFlowYield", operator: "gt", threshold: 0 },
       testDb.prisma,
     );
     await createRule(
-      { groupId: core.id, type: "metric", metricKey: "peRatio", operator: "lt", threshold: 20, role: "signal" },
+      { groupId: core.id, type: "metric", metricKey: "peRatio", operator: "lt", threshold: 20 },
       testDb.prisma,
     );
     await testDb.prisma.metricValue.createMany({

@@ -62,11 +62,11 @@ const seedGroup = (name: string, priority: number) =>
 
 const seedRule = (groupId: string, metricKey: string, operator: string, threshold: number) =>
   testDb.prisma.groupRule.create({
-    data: { groupId, type: "metric", metricKey, operator, threshold, role: "classification", isActive: true },
+    data: { groupId, type: "metric", metricKey, operator, threshold, isActive: true },
   });
 
 describe("classifyInstruments", () => {
-  it("auto-assigns an instrument that matches a group's classification rules", async () => {
+  it("auto-assigns an instrument that matches a group's active metric rules", async () => {
     const instrument = await seedPosition("TSM.US");
     await seedMetric(instrument.id, "roic", 20);
     const core = await seedGroup("Core", 0);
@@ -128,7 +128,7 @@ describe("classifyInstruments", () => {
     expect(await testDb.prisma.instrumentGroupAssignment.count()).toBe(0);
   });
 
-  it("never matches a group with zero active classification rules", async () => {
+  it("never matches a group with zero active metric rules", async () => {
     const instrument = await seedPosition("TSM.US");
     await seedMetric(instrument.id, "roic", 20);
     await seedGroup("Empty group", 0);
@@ -149,7 +149,7 @@ describe("classifyInstruments", () => {
     expect(result.classifiedCount).toBe(0);
   });
 
-  it("ignores an inactive classification rule", async () => {
+  it("ignores an inactive metric rule", async () => {
     const instrument = await seedPosition("TSM.US");
     await seedMetric(instrument.id, "roic", 20);
     const core = await seedGroup("Core", 0);
@@ -161,12 +161,12 @@ describe("classifyInstruments", () => {
     expect(result.classifiedCount).toBe(0);
   });
 
-  it("never treats an allocation rule as a classification rule", async () => {
+  it("never treats an allocation rule as a metric rule deciding group membership", async () => {
     const instrument = await seedPosition("TSM.US");
     await seedMetric(instrument.id, "roic", 20);
     const core = await seedGroup("Core", 0);
     await testDb.prisma.groupRule.create({
-      data: { groupId: core.id, type: "allocation", scope: "group", minAllocation: 0, maxAllocation: 100, role: "signal" },
+      data: { groupId: core.id, type: "allocation", scope: "group", minAllocation: 0, maxAllocation: 100 },
     });
 
     const result = await classifyInstruments(frameworkId, testDb.prisma);

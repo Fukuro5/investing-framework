@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useActionState, useState } from "react";
 import type { FormState } from "@/app/[locale]/frameworks/[frameworkId]/actions";
-import { isRuleType, RULE_OPERATORS, RULE_ROLES, RULE_TYPES } from "@/lib/frameworks/consts";
+import { isRuleType, RULE_OPERATORS, RULE_TYPES } from "@/lib/frameworks/consts";
 import { METRIC_KEYS } from "@/lib/metrics/catalog";
 
 const INITIAL_STATE: FormState = { status: "idle" };
@@ -15,7 +15,6 @@ interface IRuleFormDefaults {
   metricKey: string | null;
   operator: string | null;
   threshold: number | null;
-  role: string;
   minAllocation: number | null;
   maxAllocation: number | null;
   isActive: boolean;
@@ -111,20 +110,6 @@ export const RuleForm = ({ action, hiddenFields, defaultValues, submitLabel }: I
               defaultValue={defaultValues?.threshold ?? undefined}
               className="w-24 rounded border border-black/20 px-2 py-1 dark:border-white/20"
             />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            {t("ruleRoleLabel")}
-            <select
-              name="role"
-              defaultValue={defaultValues?.role ?? RULE_ROLES[0]}
-              className="rounded border border-black/20 px-2 py-1 dark:border-white/20"
-            >
-              {RULE_ROLES.map((role) => (
-                <option key={role} value={role}>
-                  {t(`ruleRoles.${role}`)}
-                </option>
-              ))}
-            </select>
           </label>
         </>
       ) : (

@@ -1,6 +1,6 @@
 import type { PrismaClient } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { isRuleOperator, isRuleRole } from "@/lib/frameworks/consts";
+import { isRuleOperator } from "@/lib/frameworks/consts";
 import { FrameworkError } from "@/lib/frameworks/errors";
 import { isMetricKey } from "@/lib/metrics/catalog";
 
@@ -10,7 +10,6 @@ export interface UpdateMetricRuleInput {
   metricKey: string;
   operator: string;
   threshold: number;
-  role: string;
   isActive: boolean;
 }
 
@@ -77,17 +76,12 @@ const updateMetricRule = async (input: UpdateMetricRuleInput, db: PrismaClient) 
     throw new FrameworkError("ruleOperatorInvalid", `Unrecognized operator "${input.operator}"`);
   }
 
-  if (!isRuleRole(input.role)) {
-    throw new FrameworkError("ruleRoleInvalid", `Unrecognized role "${input.role}"`);
-  }
-
   return db.groupRule.update({
     where: { id: input.ruleId },
     data: {
       metricKey,
       operator: input.operator,
       threshold: input.threshold,
-      role: input.role,
       isActive: input.isActive,
     },
   });

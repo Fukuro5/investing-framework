@@ -20,7 +20,7 @@ describe("deleteRule", () => {
       data: { frameworkId: framework.id, name: "Core", priority: 0 },
     });
     const rule = await createRule(
-      { groupId: group.id, type: "metric", metricKey: "roic", operator: "gt", threshold: 15, role: "classification" },
+      { groupId: group.id, type: "metric", metricKey: "roic", operator: "gt", threshold: 15 },
       testDb.prisma,
     );
 
@@ -35,7 +35,7 @@ describe("deleteRule", () => {
       data: { frameworkId: framework.id, name: "Core", priority: 0 },
     });
     const groupScopeRule = await testDb.prisma.groupRule.create({
-      data: { groupId: group.id, type: "allocation", scope: "group", minAllocation: 100, maxAllocation: 100, role: "signal" },
+      data: { groupId: group.id, type: "allocation", scope: "group", minAllocation: 100, maxAllocation: 100 },
     });
 
     await expect(deleteRule(groupScopeRule.id, testDb.prisma)).rejects.toThrow(/can't be deleted/);

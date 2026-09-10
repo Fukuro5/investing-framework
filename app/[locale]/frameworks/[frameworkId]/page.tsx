@@ -15,6 +15,7 @@ import { GroupForm } from "@/app/[locale]/frameworks/[frameworkId]/GroupForm";
 import { RuleForm } from "@/app/[locale]/frameworks/[frameworkId]/RuleForm";
 import { DeleteButton } from "@/components/DeleteButton";
 import { getPositions } from "@/lib/dashboard/get-positions";
+import { isAssignmentSource } from "@/lib/frameworks/consts";
 import { getFrameworkDetail } from "@/lib/frameworks/get-framework-detail";
 import { resolveGroupAllocationBand } from "@/lib/frameworks/validate-groups-total";
 
@@ -25,7 +26,18 @@ const FrameworkDetailPage = async ({ params }: PageProps<"/[locale]/frameworks/[
     getFrameworkDetail(frameworkId),
     getPositions(),
   ]);
-  const assignedGroupByInstrumentId = new Map(assignments.map((assignment) => [assignment.instrumentId, assignment.groupId]));
+  const assignmentByInstrumentId = new Map(
+    assignments.map((assignment) => {
+      if (!isAssignmentSource(assignment.source)) {
+        throw new Error(`Unrecognized assignment source "${assignment.source}"`);
+      }
+
+      return [
+        assignment.instrumentId,
+        { groupId: assignment.groupId, source: assignment.source, assignedAt: assignment.assignedAt },
+      ] as const;
+    }),
+  );
 
   return (
     <div className="px-6 py-8">
@@ -91,7 +103,6 @@ const FrameworkDetailPage = async ({ params }: PageProps<"/[locale]/frameworks/[
                           metricKey: rule.metricKey,
                           operator: rule.operator,
                           threshold: rule.threshold,
-                          role: rule.role,
                           minAllocation: rule.minAllocation,
                           maxAllocation: rule.maxAllocation,
                           isActive: rule.isActive,
@@ -128,7 +139,7 @@ const FrameworkDetailPage = async ({ params }: PageProps<"/[locale]/frameworks/[
         frameworkId={framework.id}
         groups={framework.groups}
         positions={positions}
-        assignedGroupByInstrumentId={assignedGroupByInstrumentId}
+        assignmentByInstrumentId={assignmentByInstrumentId}
       />
     </div>
   );

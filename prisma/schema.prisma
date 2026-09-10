@@ -1,5 +1,5 @@
 // Data model per PLANNING.md §3. SQLite has no native enum type, so
-// categorical fields (type, status, source, operator, role) are plain
+// categorical fields (type, status, source, operator) are plain
 // String columns validated against the const unions in lib/*/consts.ts.
 
 generator client {
@@ -191,6 +191,11 @@ model FrameworkGroup {
 // allocation rules (group- or position-scoped min/max) from metric rules
 // (metricKey/operator/threshold, the pre-existing shape). Exactly one
 // column set is populated per type — the other stays null.
+//
+// PLANNING.md §1 Phase 4: the former `role` column ('classification' vs
+// 'signal') is dropped — every active type='metric' rule now drives both
+// group membership and signal severity off one threshold. type='allocation'
+// rules were always signal-only and are unaffected.
 model GroupRule {
   id            String         @id @default(cuid())
   groupId       String
@@ -206,7 +211,6 @@ model GroupRule {
   metricKey     String?
   operator      String?
   threshold     Float?
-  role          String
   isActive      Boolean        @default(true)
 
   signals Signal[]

@@ -1,5 +1,11 @@
 export const ASSIGNMENT_SOURCES = ["manual", "auto"] as const;
 
+// InstrumentGroupAssignment.source is a plain String column (SQLite has no
+// enum support), so a value read back from the database is only known to
+// be a string until narrowed against the domain union.
+export const isAssignmentSource = (value: string): value is (typeof ASSIGNMENT_SOURCES)[number] =>
+  ASSIGNMENT_SOURCES.includes(value as (typeof ASSIGNMENT_SOURCES)[number]);
+
 // A framework's groups' target allocation bands must sum to exactly this —
 // PLANNING.md §3/§5/§9.
 export const REQUIRED_GROUP_ALLOCATION_TOTAL = 100;
@@ -33,12 +39,3 @@ export const RULE_SCOPES = ["group", "position"] as const;
 
 export const isRuleScope = (value: string): value is (typeof RULE_SCOPES)[number] =>
   RULE_SCOPES.includes(value as (typeof RULE_SCOPES)[number]);
-
-// classification rules decide auto-membership; signal rules decide
-// trim/buy-more/sell/hold once a position is already in the group. Only
-// selectable for type='metric' rules — type='allocation' rules are always
-// role='signal' (allocation never decides group membership).
-export const RULE_ROLES = ["classification", "signal"] as const;
-
-export const isRuleRole = (value: string): value is (typeof RULE_ROLES)[number] =>
-  RULE_ROLES.includes(value as (typeof RULE_ROLES)[number]);

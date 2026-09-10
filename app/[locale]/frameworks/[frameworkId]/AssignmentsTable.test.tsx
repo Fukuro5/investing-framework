@@ -54,7 +54,7 @@ describe("AssignmentsTable", () => {
       frameworkId: "framework-1",
       groups: [],
       positions: [],
-      assignedGroupByInstrumentId: new Map(),
+      assignmentByInstrumentId: new Map(),
     });
 
     expect(screen.getByText("No positions to assign yet — import a statement first.")).toBeInTheDocument();
@@ -65,11 +65,34 @@ describe("AssignmentsTable", () => {
       frameworkId: "framework-1",
       groups: [{ id: "core", name: "Core" }, { id: "convexity", name: "Convexity" }],
       positions: [buildPosition({ instrumentId: "a", ticker: "TSM.US" }), buildPosition({ instrumentId: "b", ticker: "O.US" })],
-      assignedGroupByInstrumentId: new Map([["a", "core"]]),
+      assignmentByInstrumentId: new Map([["a", { groupId: "core", source: "auto", assignedAt: new Date("2026-08-01") }]]),
     });
 
     const selects = screen.getAllByRole("combobox");
     expect(selects[0]).toHaveValue("core");
     expect(selects[1]).toHaveValue(UNCLASSIFIED_ASSIGNMENT_VALUE);
+  });
+
+  it("shows a manual badge and a revert-to-auto button for a manually-assigned instrument", async () => {
+    await renderTable({
+      frameworkId: "framework-1",
+      groups: [{ id: "core", name: "Core" }],
+      positions: [buildPosition({ instrumentId: "a", ticker: "TSM.US" })],
+      assignmentByInstrumentId: new Map([["a", { groupId: "core", source: "manual", assignedAt: new Date("2026-08-01") }]]),
+    });
+
+    expect(screen.getByText(`Manual since ${new Date("2026-08-01").toLocaleDateString()}`)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Revert to auto" })).toBeInTheDocument();
+  });
+
+  it("shows no manual badge or revert button for an auto-assigned instrument", async () => {
+    await renderTable({
+      frameworkId: "framework-1",
+      groups: [{ id: "core", name: "Core" }],
+      positions: [buildPosition({ instrumentId: "a", ticker: "TSM.US" })],
+      assignmentByInstrumentId: new Map([["a", { groupId: "core", source: "auto", assignedAt: new Date("2026-08-01") }]]),
+    });
+
+    expect(screen.queryByRole("button", { name: "Revert to auto" })).not.toBeInTheDocument();
   });
 });

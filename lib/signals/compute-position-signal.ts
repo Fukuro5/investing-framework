@@ -16,9 +16,10 @@ export interface ComputePositionSignalInput {
   // as "good" rather than penalized, since an unchecked position isn't
   // known to have a problem (PLANNING.md §1 Phase 5).
   thesisVerdict: ThesisVerdict | null;
-  // One entry per active type='metric', role='signal' GroupRule in the
-  // position's group — "warn" (no resolved metric value) doesn't count as
-  // underperforming, only "breach" does.
+  // One entry per active type='metric' GroupRule in the position's group —
+  // every active metric rule drives signal severity as well as group
+  // membership (PLANNING.md §1 Phase 4). "warn" (no resolved metric value)
+  // doesn't count as underperforming, only "breach" does.
   metricRuleStatuses: RuleEvaluationStatus[];
   // Portfolio-wide allocation % for this position (null when its USD value
   // can't be resolved yet — see lib/dashboard/allocation.ts).

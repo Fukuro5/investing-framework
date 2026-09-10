@@ -14,7 +14,7 @@ beforeEach(async () => {
   });
   groupId = group.id;
   await testDb.prisma.groupRule.create({
-    data: { groupId, type: "allocation", scope: "group", minAllocation: 100, maxAllocation: 100, role: "signal" },
+    data: { groupId, type: "allocation", scope: "group", minAllocation: 100, maxAllocation: 100 },
   });
 });
 
@@ -23,68 +23,37 @@ afterEach(async () => {
 });
 
 describe("updateRule", () => {
-  it("updates a metric rule's threshold, role, and active flag", async () => {
-    const rule = await createRule(
-      { groupId, type: "metric", metricKey: "roic", operator: "gt", threshold: 15, role: "classification" },
-      testDb.prisma,
-    );
+  it("updates a metric rule's threshold and active flag", async () => {
+    const rule = await createRule({ groupId, type: "metric", metricKey: "roic", operator: "gt", threshold: 15 }, testDb.prisma);
 
     const updated = await updateRule(
-      { ruleId: rule.id, type: "metric", metricKey: "roic", operator: "gt", threshold: 20, role: "signal", isActive: false },
+      { ruleId: rule.id, type: "metric", metricKey: "roic", operator: "gt", threshold: 20, isActive: false },
       testDb.prisma,
     );
 
-    expect(updated).toMatchObject({ threshold: 20, role: "signal", isActive: false });
+    expect(updated).toMatchObject({ threshold: 20, isActive: false });
   });
 
   it("throws for a metric key not in the catalog", async () => {
-    const rule = await createRule(
-      { groupId, type: "metric", metricKey: "roic", operator: "gt", threshold: 15, role: "classification" },
-      testDb.prisma,
-    );
+    const rule = await createRule({ groupId, type: "metric", metricKey: "roic", operator: "gt", threshold: 15 }, testDb.prisma);
 
     await expect(
       updateRule(
-        {
-          ruleId: rule.id,
-          type: "metric",
-          metricKey: "notARealMetric",
-          operator: "gt",
-          threshold: 15,
-          role: "classification",
-          isActive: true,
-        },
+        { ruleId: rule.id, type: "metric", metricKey: "notARealMetric", operator: "gt", threshold: 15, isActive: true },
         testDb.prisma,
       ),
     ).rejects.toThrow(/Unrecognized metric key/);
   });
 
   it("throws for an invalid operator", async () => {
-    const rule = await createRule(
-      { groupId, type: "metric", metricKey: "roic", operator: "gt", threshold: 15, role: "classification" },
-      testDb.prisma,
-    );
+    const rule = await createRule({ groupId, type: "metric", metricKey: "roic", operator: "gt", threshold: 15 }, testDb.prisma);
 
     await expect(
       updateRule(
-        { ruleId: rule.id, type: "metric", metricKey: "roic", operator: "between", threshold: 15, role: "classification", isActive: true },
+        { ruleId: rule.id, type: "metric", metricKey: "roic", operator: "between", threshold: 15, isActive: true },
         testDb.prisma,
       ),
     ).rejects.toThrow(/Unrecognized operator/);
-  });
-
-  it("throws for an invalid role", async () => {
-    const rule = await createRule(
-      { groupId, type: "metric", metricKey: "roic", operator: "gt", threshold: 15, role: "classification" },
-      testDb.prisma,
-    );
-
-    await expect(
-      updateRule(
-        { ruleId: rule.id, type: "metric", metricKey: "roic", operator: "gt", threshold: 15, role: "unknown", isActive: true },
-        testDb.prisma,
-      ),
-    ).rejects.toThrow(/Unrecognized role/);
   });
 
   it("updates a position-scoped allocation rule's band", async () => {
@@ -110,10 +79,7 @@ describe("updateRule", () => {
   });
 
   it("throws when submitting an allocation update for a rule that's actually type='metric'", async () => {
-    const rule = await createRule(
-      { groupId, type: "metric", metricKey: "roic", operator: "gt", threshold: 15, role: "classification" },
-      testDb.prisma,
-    );
+    const rule = await createRule({ groupId, type: "metric", metricKey: "roic", operator: "gt", threshold: 15 }, testDb.prisma);
 
     await expect(
       updateRule({ ruleId: rule.id, type: "allocation", minAllocation: 0, maxAllocation: 20, isActive: true }, testDb.prisma),
@@ -125,7 +91,7 @@ describe("updateRule", () => {
 
     await expect(
       updateRule(
-        { ruleId: rule.id, type: "metric", metricKey: "roic", operator: "gt", threshold: 15, role: "classification", isActive: true },
+        { ruleId: rule.id, type: "metric", metricKey: "roic", operator: "gt", threshold: 15, isActive: true },
         testDb.prisma,
       ),
     ).rejects.toThrow(/is not a metric rule/);

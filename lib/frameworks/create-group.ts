@@ -55,7 +55,6 @@ export const createGroup = async (input: CreateGroupInput, db: PrismaClient = pr
         scope: "group",
         minAllocation: input.targetAllocationMin,
         maxAllocation: input.targetAllocationMax,
-        role: "signal",
       },
     });
 

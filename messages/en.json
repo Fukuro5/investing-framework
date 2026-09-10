@@ -133,11 +133,6 @@
       "eq": "= (equal to)"
     },
     "ruleThresholdLabel": "Threshold",
-    "ruleRoleLabel": "Role",
-    "ruleRoles": {
-      "classification": "Classification (decides group membership)",
-      "signal": "Signal (decides trim/buy-more/sell/hold)"
-    },
     "ruleMinAllocationLabel": "Min % per position",
     "ruleMaxAllocationLabel": "Max % per position",
     "ruleActiveLabel": "Active",
@@ -149,7 +144,9 @@
     "instrumentColumn": "Instrument",
     "groupColumn": "Group",
     "unclassifiedOption": "Unclassified",
-    "saveAssignmentButton": "Save"
+    "saveAssignmentButton": "Save",
+    "manualAssignmentBadge": "Manual since {date}",
+    "revertToAutoButton": "Revert to auto"
   },
   "metricsPage": {
     "title": "Metrics",
@@ -204,7 +201,6 @@
       "ruleMetricKeyInvalid": "Unrecognized metric key.",
       "ruleOperatorInvalid": "Unrecognized operator.",
       "ruleTypeInvalid": "Unrecognized rule type.",
-      "ruleRoleInvalid": "Unrecognized role.",
       "ruleAllocationOutOfRange": "Allocation must be between 0 and 100.",
       "ruleMinGreaterThanMax": "Allocation minimum can't be greater than the maximum.",
       "ruleGroupScopeNotAllowed": "A group's own allocation band is edited from the group form, not the rule list.",

@@ -129,7 +129,7 @@ describe("refreshMarketData", () => {
       data: { frameworkId: framework.id, name: "Core", priority: 0 },
     });
     await testDb.prisma.groupRule.create({
-      data: { groupId: group.id, type: "metric", metricKey, operator: "gt", threshold: 15, role: "classification", isActive: true },
+      data: { groupId: group.id, type: "metric", metricKey, operator: "gt", threshold: 15, isActive: true },
     });
     return group.id;
   };
@@ -158,7 +158,7 @@ describe("refreshMarketData", () => {
     await seedInstrument("TSM.US", "USD");
     const groupId = await seedActiveRule("roic");
     await testDb.prisma.groupRule.create({
-      data: { groupId, type: "allocation", scope: "position", minAllocation: 0, maxAllocation: 15, role: "signal" },
+      data: { groupId, type: "allocation", scope: "position", minAllocation: 0, maxAllocation: 15 },
     });
     const metricCalls: string[] = [];
 
