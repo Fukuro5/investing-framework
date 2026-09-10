@@ -13,6 +13,7 @@ describe("ManualMetricForm", () => {
     );
 
     expect(screen.getByLabelText("Metric key")).toHaveValue("");
+    expect(screen.getByRole("option", { name: "P/E Ratio" })).toBeInTheDocument();
     expect(screen.getByLabelText("Value")).toHaveValue(null);
     expect(screen.getByLabelText("As of date")).toBeInTheDocument();
     const button = screen.getByRole("button", { name: "Save" });

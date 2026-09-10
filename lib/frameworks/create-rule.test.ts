@@ -53,6 +53,15 @@ describe("createRule", () => {
     ).rejects.toThrow(/Metric key is required/);
   });
 
+  it("throws for a metric key not in the catalog", async () => {
+    await expect(
+      createRule(
+        { groupId, type: "metric", metricKey: "notARealMetric", operator: "gt", threshold: 15, role: "classification" },
+        testDb.prisma,
+      ),
+    ).rejects.toThrow(/Unrecognized metric key/);
+  });
+
   it("throws for an invalid operator", async () => {
     await expect(
       createRule(

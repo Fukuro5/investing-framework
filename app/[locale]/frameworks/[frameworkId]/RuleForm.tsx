@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { useActionState, useState } from "react";
 import type { FormState } from "@/app/[locale]/frameworks/[frameworkId]/actions";
 import { isRuleType, RULE_OPERATORS, RULE_ROLES, RULE_TYPES } from "@/lib/frameworks/consts";
+import { METRIC_KEYS } from "@/lib/metrics/catalog";
 
 const INITIAL_STATE: FormState = { status: "idle" };
 
@@ -32,6 +33,7 @@ interface IRuleFormProps {
 // allocation band is managed by GroupForm instead (PLANNING.md §1 Phase 1).
 export const RuleForm = ({ action, hiddenFields, defaultValues, submitLabel }: IRuleFormProps) => {
   const t = useTranslations("frameworkDetailPage");
+  const tCommon = useTranslations("common");
   const [state, formAction, isPending] = useActionState(action, INITIAL_STATE);
   const [type, setType] = useState<RuleType>(defaultValues?.type ?? "metric");
 
@@ -69,13 +71,21 @@ export const RuleForm = ({ action, hiddenFields, defaultValues, submitLabel }: I
         <>
           <label className="flex flex-col gap-1 text-sm">
             {t("ruleMetricKeyLabel")}
-            <input
-              type="text"
+            <select
               name="metricKey"
               required
-              defaultValue={defaultValues?.metricKey ?? undefined}
-              className="w-28 rounded border border-black/20 px-2 py-1 dark:border-white/20"
-            />
+              defaultValue={defaultValues?.metricKey ?? ""}
+              className="rounded border border-black/20 px-2 py-1 dark:border-white/20"
+            >
+              <option value="" disabled>
+                {t("ruleMetricKeyPlaceholder")}
+              </option>
+              {METRIC_KEYS.map((metricKey) => (
+                <option key={metricKey} value={metricKey}>
+                  {tCommon(`metricKeys.${metricKey}`)}
+                </option>
+              ))}
+            </select>
           </label>
           <label className="flex flex-col gap-1 text-sm">
             {t("ruleOperatorLabel")}

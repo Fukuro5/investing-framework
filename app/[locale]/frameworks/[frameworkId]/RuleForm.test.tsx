@@ -18,6 +18,7 @@ describe("RuleForm", () => {
     );
 
     expect(screen.getByLabelText("Metric key")).toHaveValue("");
+    expect(screen.getByRole("option", { name: "P/E Ratio" })).toBeInTheDocument();
     expect(screen.queryByLabelText("Active")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add rule" })).toBeInTheDocument();
   });

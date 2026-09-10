@@ -33,6 +33,12 @@ describe("upsertManualMetric", () => {
     ).rejects.toThrow(/Metric key is required/);
   });
 
+  it("throws for a metric key not in the catalog", async () => {
+    await expect(
+      upsertManualMetric({ instrumentId, metricKey: "notARealMetric", value: 1, asOfDate: new Date() }, testDb.prisma),
+    ).rejects.toThrow(/Unrecognized metric key/);
+  });
+
   it("updates the value instead of duplicating when the same instrument/key/asOfDate is submitted again", async () => {
     const asOfDate = new Date("2026-06-01");
     await upsertManualMetric({ instrumentId, metricKey: "roic", value: 18.5, asOfDate }, testDb.prisma);

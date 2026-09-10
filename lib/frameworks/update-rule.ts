@@ -2,6 +2,7 @@ import type { PrismaClient } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { isRuleOperator, isRuleRole } from "@/lib/frameworks/consts";
 import { FrameworkError } from "@/lib/frameworks/errors";
+import { isMetricKey } from "@/lib/metrics/catalog";
 
 export interface UpdateMetricRuleInput {
   ruleId: string;
@@ -66,6 +67,10 @@ const updateMetricRule = async (input: UpdateMetricRuleInput, db: PrismaClient) 
 
   if (metricKey.length === 0) {
     throw new FrameworkError("ruleMetricKeyRequired", "Metric key is required");
+  }
+
+  if (!isMetricKey(metricKey)) {
+    throw new FrameworkError("ruleMetricKeyInvalid", `Unrecognized metric key "${metricKey}"`);
   }
 
   if (!isRuleOperator(input.operator)) {

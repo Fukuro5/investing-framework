@@ -1,3 +1,4 @@
+import { KEY_METRICS_TTM_METRIC_FIELDS, RATIOS_TTM_METRIC_FIELDS } from "@/lib/metrics/catalog";
 import type { MetricResult } from "@/lib/market-data/types";
 
 // FMP's older /api/v3/*-ttm endpoints are dead ("Legacy Endpoint... only
@@ -12,14 +13,12 @@ export interface MetricProvider {
   getMetric(ticker: string, metricKey: string): Promise<MetricResult | null>;
 }
 
-interface FmpRatiosTtmResponse {
-  priceToEarningsRatioTTM?: number;
-  dividendYieldTTM?: number;
-}
-
-interface FmpKeyMetricsTtmResponse {
-  returnOnInvestedCapitalTTM?: number;
-}
+// Both TTM endpoints return dozens of fields beyond what the catalog maps
+// today (§9 of the Phase 2 research) — a plain index type instead of a
+// fixed set of optional keys, since which field gets read is decided at
+// runtime by RATIOS_TTM_METRIC_FIELDS/KEY_METRICS_TTM_METRIC_FIELDS.
+type FmpRatiosTtmResponse = Record<string, number | undefined>;
+type FmpKeyMetricsTtmResponse = Record<string, number | undefined>;
 
 // Mirrors toTwelveDataSymbol: strips Freedom Finance's ".US" suffix —
 // unconfirmed against a real non-US FMP symbol so far (only US tickers
@@ -36,19 +35,6 @@ const getJson = async <T>(url: string): Promise<T> => {
   return response.json() as Promise<T>;
 };
 
-// Only today's 3 metric keys (the same ones Finnhub covered) are mapped —
-// field names confirmed against a real /stable response for AAPL. Filling
-// out the rest of FMP's much larger fundamentals catalog is Phase 2's job
-// (PLANNING.md §1 Phase 2), not this provider swap.
-const RATIOS_TTM_FIELDS: Record<string, keyof FmpRatiosTtmResponse> = {
-  peRatio: "priceToEarningsRatioTTM",
-  dividendYield: "dividendYieldTTM",
-};
-
-const KEY_METRICS_TTM_FIELDS: Record<string, keyof FmpKeyMetricsTtmResponse> = {
-  roic: "returnOnInvestedCapitalTTM",
-};
-
 // FMP's TTM endpoints return a continuously-current trailing-twelve-month
 // snapshot with no per-value date of their own, same as Finnhub's flat
 // "metric" fields — day-truncated so repeated refreshes within the same
@@ -60,8 +46,8 @@ const startOfToday = (): Date => {
 
 export const createFmpProvider = (apiKey: string): MetricProvider => ({
   getMetric: async (ticker: string, metricKey: string): Promise<MetricResult | null> => {
-    const ratiosField = RATIOS_TTM_FIELDS[metricKey];
-    const keyMetricsField = KEY_METRICS_TTM_FIELDS[metricKey];
+    const ratiosField = RATIOS_TTM_METRIC_FIELDS[metricKey];
+    const keyMetricsField = KEY_METRICS_TTM_METRIC_FIELDS[metricKey];
 
     if (!ratiosField && !keyMetricsField) {
       return null;

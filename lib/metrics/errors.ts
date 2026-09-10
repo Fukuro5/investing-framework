@@ -1,4 +1,4 @@
-export type MetricErrorCode = "metricKeyRequired" | "metricValueMustBeNumber" | "metricAsOfDateInvalid";
+export type MetricErrorCode = "metricKeyRequired" | "metricKeyInvalid" | "metricValueMustBeNumber" | "metricAsOfDateInvalid";
 
 // Mirrors lib/frameworks/errors.ts — `message` is for logs/tests, `code` is
 // what Server Actions use to look up a translated, user-facing message via

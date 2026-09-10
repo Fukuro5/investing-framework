@@ -79,7 +79,10 @@ describe("getActiveFrameworkPositionSignals", () => {
       testDb.prisma,
     );
     await createRule({ groupId: core.id, type: "metric", metricKey: "roic", operator: "gt", threshold: 15, role: "signal" }, testDb.prisma);
-    await createRule({ groupId: core.id, type: "metric", metricKey: "fcf", operator: "gt", threshold: 0, role: "signal" }, testDb.prisma);
+    await createRule(
+      { groupId: core.id, type: "metric", metricKey: "freeCashFlowYield", operator: "gt", threshold: 0, role: "signal" },
+      testDb.prisma,
+    );
     await createRule(
       { groupId: core.id, type: "metric", metricKey: "peRatio", operator: "lt", threshold: 20, role: "signal" },
       testDb.prisma,
@@ -87,7 +90,7 @@ describe("getActiveFrameworkPositionSignals", () => {
     await testDb.prisma.metricValue.createMany({
       data: [
         { instrumentId: instrument.id, metricKey: "roic", value: 5, asOfDate: new Date("2026-08-01"), source: "manual" },
-        { instrumentId: instrument.id, metricKey: "fcf", value: -1, asOfDate: new Date("2026-08-01"), source: "manual" },
+        { instrumentId: instrument.id, metricKey: "freeCashFlowYield", value: -1, asOfDate: new Date("2026-08-01"), source: "manual" },
         { instrumentId: instrument.id, metricKey: "peRatio", value: 30, asOfDate: new Date("2026-08-01"), source: "manual" },
       ],
     });
@@ -98,7 +101,7 @@ describe("getActiveFrameworkPositionSignals", () => {
     const signal = result?.signalByInstrumentId.get(instrument.id);
 
     expect(signal?.metricSeverity).toBe("bad");
-    expect(signal?.underperformingMetricKeys.sort()).toEqual(["fcf", "peRatio", "roic"]);
+    expect(signal?.underperformingMetricKeys.sort()).toEqual(["freeCashFlowYield", "peRatio", "roic"]);
     expect(signal?.badge).toBe("sell");
   });
 

@@ -1,6 +1,17 @@
 {
   "common": {
-    "appName": "Investing Framework"
+    "appName": "Investing Framework",
+    "metricKeys": {
+      "peRatio": "P/E Ratio",
+      "dividendYield": "Dividend Yield",
+      "priceToBook": "Price to Book",
+      "debtToEquity": "Debt to Equity",
+      "netProfitMargin": "Net Profit Margin",
+      "currentRatio": "Current Ratio",
+      "roic": "Return on Invested Capital (ROIC)",
+      "returnOnEquity": "Return on Equity (ROE)",
+      "freeCashFlowYield": "Free Cash Flow Yield"
+    }
   },
   "navWidget": {
     "dashboardLink": "Dashboard",
@@ -112,6 +123,7 @@
       "allocation": "Position allocation"
     },
     "ruleMetricKeyLabel": "Metric key",
+    "ruleMetricKeyPlaceholder": "Select a metric",
     "ruleOperatorLabel": "Operator",
     "ruleOperators": {
       "gt": "> (greater than)",
@@ -152,6 +164,7 @@
     "sourceManual": "Manual",
     "sourceApi": "API",
     "metricKeyLabel": "Metric key",
+    "metricKeyPlaceholder": "Select a metric",
     "valueLabel": "Value",
     "asOfDateLabel": "As of date",
     "saveButton": "Save"
@@ -193,6 +206,7 @@
       "groupsNotFullyAllocated": "This framework's groups don't bracket 100% yet — adjust the target bands before activating.",
       "groupFieldMustBeNumber": "That field must be a number.",
       "ruleMetricKeyRequired": "Metric key is required.",
+      "ruleMetricKeyInvalid": "Unrecognized metric key.",
       "ruleOperatorInvalid": "Unrecognized operator.",
       "ruleTypeInvalid": "Unrecognized rule type.",
       "ruleRoleInvalid": "Unrecognized role.",
@@ -205,6 +219,7 @@
     },
     "metrics": {
       "metricKeyRequired": "Metric key is required.",
+      "metricKeyInvalid": "Unrecognized metric key.",
       "metricValueMustBeNumber": "Metric value must be a number.",
       "metricAsOfDateInvalid": "That's not a valid date.",
       "generic": "Something went wrong."

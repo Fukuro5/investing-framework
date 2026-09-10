@@ -1,6 +1,7 @@
 import type { PrismaClient } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { MetricError } from "@/lib/metrics/errors";
+import { isMetricKey } from "@/lib/metrics/catalog";
 
 export interface UpsertManualMetricInput {
   instrumentId: string;
@@ -16,6 +17,10 @@ export const upsertManualMetric = async (input: UpsertManualMetricInput, db: Pri
 
   if (metricKey.length === 0) {
     throw new MetricError("metricKeyRequired", "Metric key is required");
+  }
+
+  if (!isMetricKey(metricKey)) {
+    throw new MetricError("metricKeyInvalid", `Unrecognized metric key "${metricKey}"`);
   }
 
   return db.metricValue.upsert({

@@ -37,6 +37,28 @@ describe("updateRule", () => {
     expect(updated).toMatchObject({ threshold: 20, role: "signal", isActive: false });
   });
 
+  it("throws for a metric key not in the catalog", async () => {
+    const rule = await createRule(
+      { groupId, type: "metric", metricKey: "roic", operator: "gt", threshold: 15, role: "classification" },
+      testDb.prisma,
+    );
+
+    await expect(
+      updateRule(
+        {
+          ruleId: rule.id,
+          type: "metric",
+          metricKey: "notARealMetric",
+          operator: "gt",
+          threshold: 15,
+          role: "classification",
+          isActive: true,
+        },
+        testDb.prisma,
+      ),
+    ).rejects.toThrow(/Unrecognized metric key/);
+  });
+
   it("throws for an invalid operator", async () => {
     const rule = await createRule(
       { groupId, type: "metric", metricKey: "roic", operator: "gt", threshold: 15, role: "classification" },

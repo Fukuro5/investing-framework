@@ -1,6 +1,17 @@
 {
   "common": {
-    "appName": "Investing Framework"
+    "appName": "Investing Framework",
+    "metricKeys": {
+      "peRatio": "Коефіцієнт P/E",
+      "dividendYield": "Дивідендна дохідність",
+      "priceToBook": "Ціна до балансової вартості",
+      "debtToEquity": "Борг до власного капіталу",
+      "netProfitMargin": "Чиста рентабельність",
+      "currentRatio": "Коефіцієнт поточної ліквідності",
+      "roic": "Рентабельність інвестованого капіталу (ROIC)",
+      "returnOnEquity": "Рентабельність власного капіталу (ROE)",
+      "freeCashFlowYield": "Дохідність вільного грошового потоку"
+    }
   },
   "navWidget": {
     "dashboardLink": "Панель",
@@ -112,6 +123,7 @@
       "allocation": "Розподіл позиції"
     },
     "ruleMetricKeyLabel": "Метрика",
+    "ruleMetricKeyPlaceholder": "Оберіть метрику",
     "ruleOperatorLabel": "Оператор",
     "ruleOperators": {
       "gt": "> (більше)",
@@ -152,6 +164,7 @@
     "sourceManual": "Вручну",
     "sourceApi": "API",
     "metricKeyLabel": "Метрика",
+    "metricKeyPlaceholder": "Оберіть метрику",
     "valueLabel": "Значення",
     "asOfDateLabel": "Дата станом на",
     "saveButton": "Зберегти"
@@ -193,6 +206,7 @@
       "groupsNotFullyAllocated": "Групи цього фреймворку ще не охоплюють 100% — скоригуйте цільові діапазони перед активацією.",
       "groupFieldMustBeNumber": "Це поле має бути числом.",
       "ruleMetricKeyRequired": "Потрібно вказати метрику.",
+      "ruleMetricKeyInvalid": "Нерозпізнаний ключ метрики.",
       "ruleOperatorInvalid": "Нерозпізнаний оператор.",
       "ruleTypeInvalid": "Нерозпізнаний тип правила.",
       "ruleRoleInvalid": "Нерозпізнана роль.",
@@ -205,6 +219,7 @@
     },
     "metrics": {
       "metricKeyRequired": "Потрібно вказати метрику.",
+      "metricKeyInvalid": "Нерозпізнаний ключ метрики.",
       "metricValueMustBeNumber": "Значення метрики має бути числом.",
       "metricAsOfDateInvalid": "Це не дійсна дата.",
       "generic": "Щось пішло не так."

@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 import { upsertManualMetricAction, type UpsertMetricState } from "@/app/[locale]/metrics/actions";
-import { SUGGESTED_METRIC_KEYS } from "@/lib/metrics/consts";
+import { METRIC_KEYS } from "@/lib/metrics/catalog";
 
 const INITIAL_STATE: UpsertMetricState = { status: "idle" };
 
@@ -13,6 +13,7 @@ interface IManualMetricFormProps {
 
 export const ManualMetricForm = ({ instrumentId }: IManualMetricFormProps) => {
   const t = useTranslations("metricsPage");
+  const tCommon = useTranslations("common");
   const [state, formAction, isPending] = useActionState(upsertManualMetricAction, INITIAL_STATE);
 
   return (
@@ -20,18 +21,21 @@ export const ManualMetricForm = ({ instrumentId }: IManualMetricFormProps) => {
       <input type="hidden" name="instrumentId" value={instrumentId} />
       <label className="flex flex-col gap-1 text-sm">
         {t("metricKeyLabel")}
-        <input
-          type="text"
+        <select
           name="metricKey"
-          list={`metric-keys-${instrumentId}`}
           required
-          className="w-32 rounded border border-black/20 px-2 py-1 dark:border-white/20"
-        />
-        <datalist id={`metric-keys-${instrumentId}`}>
-          {SUGGESTED_METRIC_KEYS.map((key) => (
-            <option key={key} value={key} />
+          defaultValue=""
+          className="rounded border border-black/20 px-2 py-1 dark:border-white/20"
+        >
+          <option value="" disabled>
+            {t("metricKeyPlaceholder")}
+          </option>
+          {METRIC_KEYS.map((metricKey) => (
+            <option key={metricKey} value={metricKey}>
+              {tCommon(`metricKeys.${metricKey}`)}
+            </option>
           ))}
-        </datalist>
+        </select>
       </label>
       <label className="flex flex-col gap-1 text-sm">
         {t("valueLabel")}

@@ -9,6 +9,7 @@ export type FrameworkErrorCode =
   | "groupsNotFullyAllocated"
   | "groupFieldMustBeNumber"
   | "ruleMetricKeyRequired"
+  | "ruleMetricKeyInvalid"
   | "ruleOperatorInvalid"
   | "ruleTypeInvalid"
   | "ruleRoleInvalid"
