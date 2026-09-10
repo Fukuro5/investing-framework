@@ -15,8 +15,9 @@ interface CompanyTickerEntry {
 
 type CompanyTickersResponse = Record<string, CompanyTickerEntry>;
 
-// Mirrors lib/market-data/finnhub-provider.ts's toFinnhubSymbol — brokers
-// suffix US tickers with ".US"; EDGAR's ticker file uses the bare symbol.
+// Mirrors lib/market-data/twelve-data-provider.ts's toTwelveDataSymbol —
+// brokers suffix US tickers with ".US"; EDGAR's ticker file uses the bare
+// symbol.
 export const toEdgarSymbol = (ticker: string): string => (ticker.endsWith(US_SUFFIX) ? ticker.slice(0, -US_SUFFIX.length) : ticker);
 
 const padCik = (cik: number): string => String(cik).padStart(CIK_LENGTH, "0");

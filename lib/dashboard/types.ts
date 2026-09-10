@@ -8,12 +8,13 @@ export interface PositionView {
   // available, else derived from Transaction rows — see `source`.
   quantity: number;
   avgCostPrice: number;
-  // marketPrice/marketValue: always from the cached PriceSnapshot (Finnhub
-  // refresh), never from a broker statement's reported price — a monthly
-  // statement's price can be weeks stale by the time you look at it. Null
-  // until "Refresh prices" has been run at least once for this instrument.
+  // marketPrice/marketValue: always from the cached PriceSnapshot (market
+  // data refresh), never from a broker statement's reported price — a
+  // monthly statement's price can be weeks stale by the time you look at
+  // it. Null until "Refresh prices" has been run at least once for this
+  // instrument.
   marketPrice: number | null;
-  // The quote's own as-of date/time (from the provider, e.g. Finnhub's
+  // The quote's own as-of date/time (from the provider, e.g. the quote's
   // last-trade timestamp) — not when the refresh ran, so it's clear how
   // fresh the underlying quote actually is. Null alongside marketPrice.
   marketPriceAsOf: Date | null;

@@ -6,18 +6,28 @@ afterEach(() => {
 });
 
 describe("getConfiguredProvider", () => {
-  it("throws MissingApiKeyError when FINNHUB_API_KEY is not set", () => {
-    vi.stubEnv("FINNHUB_API_KEY", "");
+  it("throws MissingApiKeyError when TWELVE_DATA_API_KEY is not set", () => {
+    vi.stubEnv("TWELVE_DATA_API_KEY", "");
+    vi.stubEnv("FMP_API_KEY", "test-key");
 
     expect(() => getConfiguredProvider()).toThrow(MissingApiKeyError);
   });
 
-  it("returns a provider implementing getQuote and getFxRate when FINNHUB_API_KEY is set", () => {
-    vi.stubEnv("FINNHUB_API_KEY", "test-key");
+  it("throws MissingApiKeyError when FMP_API_KEY is not set", () => {
+    vi.stubEnv("TWELVE_DATA_API_KEY", "test-key");
+    vi.stubEnv("FMP_API_KEY", "");
+
+    expect(() => getConfiguredProvider()).toThrow(MissingApiKeyError);
+  });
+
+  it("returns a provider implementing getQuote, getFxRate, and getMetric when both keys are set", () => {
+    vi.stubEnv("TWELVE_DATA_API_KEY", "test-key");
+    vi.stubEnv("FMP_API_KEY", "test-key");
 
     const provider = getConfiguredProvider();
 
     expect(typeof provider.getQuote).toBe("function");
     expect(typeof provider.getFxRate).toBe("function");
+    expect(typeof provider.getMetric).toBe("function");
   });
 });

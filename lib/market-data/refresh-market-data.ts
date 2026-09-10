@@ -62,7 +62,7 @@ const refreshFxRates = async (provider: MarketDataProvider, db: PrismaClient) =>
 
 // Only metric keys actually referenced by an active GroupRule are fetched
 // — an unbounded "every metric key anyone's ever typed" refresh would burn
-// through Finnhub's free-tier rate limit for keys nothing currently uses.
+// through FMP's free-tier rate limit for keys nothing currently uses.
 const refreshMetrics = async (provider: MarketDataProvider, db: PrismaClient) => {
   let updatedMetricCount = 0;
   const failedMetrics: string[] = [];

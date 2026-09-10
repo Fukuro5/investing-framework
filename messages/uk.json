@@ -180,7 +180,7 @@
   "errors": {
     "invalidFile": "Не вдалося прочитати цей файл як JSON-звіт Freedom Finance.",
     "genericImportError": "Під час імпорту звіту сталася помилка.",
-    "missingApiKey": "Додайте FINNHUB_API_KEY у .env.local, щоб увімкнути оновлення цін.",
+    "missingApiKey": "Додайте TWELVE_DATA_API_KEY та FMP_API_KEY у .env.local, щоб увімкнути оновлення цін.",
     "genericRefreshError": "Під час оновлення ринкових даних сталася помилка.",
     "frameworks": {
       "frameworkNameRequired": "Потрібно вказати назву фреймворку.",

@@ -1,6 +1,7 @@
 // Low-level fetch wrapper shared by every EDGAR call — SEC requires a
 // descriptive User-Agent header instead of an API key (PLANNING.md §1
-// Phase 3), so auth is header-based rather than Finnhub's query-param key.
+// Phase 3), so auth is header-based rather than the market-data providers'
+// query-param key.
 const withUserAgent = (userAgent: string): HeadersInit => ({ "User-Agent": userAgent });
 
 // Carries the HTTP status so callers can distinguish "not found" (safe to

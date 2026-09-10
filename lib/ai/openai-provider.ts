@@ -29,8 +29,8 @@ const parseAssessment = (content: string | null | undefined): ThesisAssessment =
   return { verdict: parsed.verdict, explanation: parsed.explanation };
 };
 
-// Factory function (not a class) — mirrors createFinnhubProvider in
-// lib/market-data/finnhub-provider.ts.
+// Factory function (not a class) — mirrors createTwelveDataProvider in
+// lib/market-data/twelve-data-provider.ts.
 export const createOpenAiProvider = (apiKey: string): AiProvider => {
   const client = new OpenAI({ apiKey });
 

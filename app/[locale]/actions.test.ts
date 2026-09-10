@@ -113,8 +113,8 @@ describe("refreshMarketDataAction", () => {
     expect(await testDb.prisma.instrumentGroupAssignment.count()).toBe(0);
   });
 
-  it("returns a missingApiKey error when no provider is given and FINNHUB_API_KEY is unset", async () => {
-    vi.stubEnv("FINNHUB_API_KEY", "");
+  it("returns a missingApiKey error when no provider is given and TWELVE_DATA_API_KEY is unset", async () => {
+    vi.stubEnv("TWELVE_DATA_API_KEY", "");
 
     const state = await refreshMarketDataAction(
       { status: "idle" } as RefreshMarketDataState,
