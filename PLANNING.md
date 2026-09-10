@@ -36,7 +36,7 @@ Today, "valid" metric keys are just a hint — `SUGGESTED_METRIC_KEYS` (`lib/met
 Manual `MetricValue` entry goes away — every metric value going forward comes from the provider.
 
 - Removes the metrics page's manual-entry form, `upsertManualMetric` (`lib/metrics/upsert-manual-metric.ts`), and its Server Action caller.
-- Simplifies `resolveMetricValue` (`lib/metrics/resolve-metric-value.ts`) — the manual-vs-api recency race becomes moot once no new manual rows are ever written. Existing historical manual rows stay in the DB (harmless, not deleted) but are superseded the moment a same-key `api` row exists, same precedence rule as before.
+- Simplifies `resolveMetricValue` (`lib/metrics/resolve-metric-value.ts`) to only ever read `source: 'api'` rows — no manual-vs-api recency race, no fallback to a manual row. There was no manual `MetricValue` data in the local DB worth preserving a fallback path for, so any `source: 'manual'` rows a fresh run happens to have are simply never read again.
 - `refreshMetrics`' existing scoping (`lib/market-data/refresh-market-data.ts` — only fetch metric keys referenced by an active `GroupRule`) already matches what "auto-only, framework-scoped" means; it needs no logic change, only a different provider underneath (Phase 1).
 - **Confirmed no carve-out needed**: the one candidate for a provider-less "custom" metric — `convexity`, sitting in `SUGGESTED_METRIC_KEYS` today — turned out to be a leftover copy of a framework *group* name from the docs' own example, not an actual metric anyone rules against. Full auto-only is safe with no exception.
 

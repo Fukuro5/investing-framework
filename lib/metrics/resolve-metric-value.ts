@@ -8,18 +8,17 @@ export interface ResolvedMetricValue {
   fetchedAt: Date;
 }
 
-// Manual doesn't automatically win — whichever row (manual or api) for this
-// instrument+metricKey has the more recent asOfDate wins, ties broken by
-// fetchedAt (PLANNING.md §3/§5/§9). Manual only wins by default when the
-// API doesn't supply that metric at all (no api row exists).
+// Manual entry is gone (PLANNING.md §1 Phase 3) — every MetricValue row is
+// now source "api", so this just reads the latest one for this
+// instrument+metricKey.
 export const resolveMetricValue = async (
   instrumentId: string,
   metricKey: string,
   db: PrismaClient = prisma,
 ): Promise<ResolvedMetricValue | null> => {
   const [latest] = await db.metricValue.findMany({
-    where: { instrumentId, metricKey },
-    orderBy: [{ asOfDate: "desc" }, { fetchedAt: "desc" }],
+    where: { instrumentId, metricKey, source: "api" },
+    orderBy: { asOfDate: "desc" },
     take: 1,
   });
 

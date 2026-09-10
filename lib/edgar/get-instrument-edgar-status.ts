@@ -18,8 +18,7 @@ const VERDICT_BY_VALUE = new Map<number, FinancialsTrendVerdict>(
 );
 
 // Read model for the Thesis page's "check for updates" UI (PLANNING.md §1
-// Phase 3/4). Reuses resolveMetricValue so a fresher manual override of
-// edgarFinancialsTrend (§6's precedence rule) is reflected here too, and
+// Phase 3/4). Reuses resolveMetricValue for edgarFinancialsTrend, and
 // getLatestThesisVerdict for Phase 4's AI thesis check.
 export const getInstrumentEdgarStatus = async (instrumentId: string, db: PrismaClient = prisma): Promise<InstrumentEdgarStatus> => {
   const [instrument, trendMetric, latestThesisVerdict] = await Promise.all([

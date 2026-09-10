@@ -18,11 +18,15 @@ export const listInstrumentMetrics = async (instrumentId: string, db: PrismaClie
     orderBy: [{ metricKey: "asc" }, { asOfDate: "desc" }, { fetchedAt: "desc" }],
   });
 
-  const seenMetricKeys = new Set<string>();
+  // resolveMetricValue only ever reads "api" rows (PLANNING.md §1 Phase 3),
+  // so a "manual" row is never current, no matter how recent its asOfDate.
+  const seenCurrentMetricKeys = new Set<string>();
 
   return rows.map((row) => {
-    const isCurrent = !seenMetricKeys.has(row.metricKey);
-    seenMetricKeys.add(row.metricKey);
+    const isCurrent = row.source === "api" && !seenCurrentMetricKeys.has(row.metricKey);
+    if (row.source === "api") {
+      seenCurrentMetricKeys.add(row.metricKey);
+    }
     return { ...row, isCurrent };
   });
 };

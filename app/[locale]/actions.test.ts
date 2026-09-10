@@ -76,7 +76,7 @@ describe("refreshMarketDataAction", () => {
   it("re-classifies the active framework's instruments after a successful refresh", async () => {
     const instrument = await seedPosition("TSM.US");
     await testDb.prisma.metricValue.create({
-      data: { instrumentId: instrument.id, metricKey: "roic", value: 20, asOfDate: new Date("2026-08-01"), source: "manual" },
+      data: { instrumentId: instrument.id, metricKey: "roic", value: 20, asOfDate: new Date("2026-08-01"), source: "api" },
     });
     const framework = await testDb.prisma.framework.create({ data: { name: "Quality", isActive: true } });
     const group = await testDb.prisma.frameworkGroup.create({
@@ -129,7 +129,7 @@ describe("refreshMarketDataAction", () => {
   it("returns a genericRefreshError when classification itself fails", async () => {
     const instrument = await seedPosition("TSM.US");
     await testDb.prisma.metricValue.create({
-      data: { instrumentId: instrument.id, metricKey: "roic", value: 20, asOfDate: new Date("2026-08-01"), source: "manual" },
+      data: { instrumentId: instrument.id, metricKey: "roic", value: 20, asOfDate: new Date("2026-08-01"), source: "api" },
     });
     const framework = await testDb.prisma.framework.create({ data: { name: "Quality", isActive: true } });
     const group = await testDb.prisma.frameworkGroup.create({

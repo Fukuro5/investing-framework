@@ -40,16 +40,16 @@ describe("getInstrumentEdgarStatus", () => {
     });
   });
 
-  it("prefers a fresher manual override over an older api verdict", async () => {
-    await testDb.prisma.metricValue.create({
-      data: { instrumentId, metricKey: "edgarFinancialsTrend", value: 1, asOfDate: new Date("2026-06-27"), source: "api" },
-    });
+  it("ignores a manual override row and reads the api verdict instead", async () => {
     await testDb.prisma.metricValue.create({
       data: { instrumentId, metricKey: "edgarFinancialsTrend", value: -1, asOfDate: new Date("2026-08-01"), source: "manual" },
+    });
+    await testDb.prisma.metricValue.create({
+      data: { instrumentId, metricKey: "edgarFinancialsTrend", value: 1, asOfDate: new Date("2026-06-27"), source: "api" },
     });
 
     const status = await getInstrumentEdgarStatus(instrumentId, testDb.prisma);
 
-    expect(status.verdict).toBe("deteriorating");
+    expect(status.verdict).toBe("improving");
   });
 });

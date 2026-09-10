@@ -89,9 +89,9 @@ describe("getActiveFrameworkPositionSignals", () => {
     );
     await testDb.prisma.metricValue.createMany({
       data: [
-        { instrumentId: instrument.id, metricKey: "roic", value: 5, asOfDate: new Date("2026-08-01"), source: "manual" },
-        { instrumentId: instrument.id, metricKey: "freeCashFlowYield", value: -1, asOfDate: new Date("2026-08-01"), source: "manual" },
-        { instrumentId: instrument.id, metricKey: "peRatio", value: 30, asOfDate: new Date("2026-08-01"), source: "manual" },
+        { instrumentId: instrument.id, metricKey: "roic", value: 5, asOfDate: new Date("2026-08-01"), source: "api" },
+        { instrumentId: instrument.id, metricKey: "freeCashFlowYield", value: -1, asOfDate: new Date("2026-08-01"), source: "api" },
+        { instrumentId: instrument.id, metricKey: "peRatio", value: 30, asOfDate: new Date("2026-08-01"), source: "api" },
       ],
     });
     await setActiveFramework(framework.id, testDb.prisma);

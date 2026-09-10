@@ -1,5 +1,4 @@
 import { getTranslations } from "next-intl/server";
-import { ManualMetricForm } from "@/app/[locale]/metrics/ManualMetricForm";
 import { getPositions } from "@/lib/dashboard/get-positions";
 import { listInstrumentMetrics } from "@/lib/metrics/list-instrument-metrics";
 
@@ -53,10 +52,6 @@ const MetricsPage = async () => {
                     </tbody>
                   </table>
                 )}
-
-                <div className="mt-3">
-                  <ManualMetricForm instrumentId={position.instrumentId} />
-                </div>
               </li>
             );
           })}

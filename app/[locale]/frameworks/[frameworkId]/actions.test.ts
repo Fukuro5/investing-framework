@@ -325,7 +325,7 @@ describe("evaluateFrameworkAction", () => {
       },
     });
     await testDb.prisma.metricValue.create({
-      data: { instrumentId: instrument.id, metricKey: "roic", value: 20, asOfDate: new Date("2026-07-31"), source: "manual" },
+      data: { instrumentId: instrument.id, metricKey: "roic", value: 20, asOfDate: new Date("2026-07-31"), source: "api" },
     });
 
     const state = await evaluateFrameworkAction(

@@ -37,7 +37,17 @@ describe("listInstrumentMetrics", () => {
 
     const fcfRows = rows.filter((row) => row.metricKey === "fcf");
     expect(fcfRows).toHaveLength(1);
-    expect(fcfRows[0].isCurrent).toBe(true);
+    expect(fcfRows[0].isCurrent).toBe(false);
+  });
+
+  it("marks no row current for a metricKey that only has a manual row", async () => {
+    await testDb.prisma.metricValue.create({
+      data: { instrumentId, metricKey: "fcf", value: 500, asOfDate: new Date("2026-06-01"), source: "manual" },
+    });
+
+    const rows = await listInstrumentMetrics(instrumentId, testDb.prisma);
+
+    expect(rows.every((row) => !row.isCurrent)).toBe(true);
   });
 
   it("returns an empty list when the instrument has no metrics yet", async () => {

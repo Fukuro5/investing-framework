@@ -153,7 +153,7 @@
   },
   "metricsPage": {
     "title": "Metrics",
-    "description": "Manually enter metric values used by framework rules (e.g. ROIC, FCF). A metric fetched from the market data API can override a manual entry, and vice versa — whichever is more recent wins.",
+    "description": "Metric values fetched automatically from the market data API for the metrics referenced by an active framework rule (e.g. ROIC, FCF).",
     "noPositions": "No positions yet — import a statement first.",
     "columns": {
       "metricKey": "Metric",
@@ -162,12 +162,7 @@
       "source": "Source"
     },
     "sourceManual": "Manual",
-    "sourceApi": "API",
-    "metricKeyLabel": "Metric key",
-    "metricKeyPlaceholder": "Select a metric",
-    "valueLabel": "Value",
-    "asOfDateLabel": "As of date",
-    "saveButton": "Save"
+    "sourceApi": "API"
   },
   "thesisPage": {
     "title": "Thesis",
@@ -215,13 +210,6 @@
       "ruleGroupScopeNotAllowed": "A group's own allocation band is edited from the group form, not the rule list.",
       "ruleGroupScopeCannotBeDeleted": "A group's own allocation band can't be deleted — delete the group instead.",
       "rulePositionScopeAlreadyExists": "This group already has a position-level allocation rule — edit it instead of adding another.",
-      "generic": "Something went wrong."
-    },
-    "metrics": {
-      "metricKeyRequired": "Metric key is required.",
-      "metricKeyInvalid": "Unrecognized metric key.",
-      "metricValueMustBeNumber": "Metric value must be a number.",
-      "metricAsOfDateInvalid": "That's not a valid date.",
       "generic": "Something went wrong."
     },
     "thesis": {

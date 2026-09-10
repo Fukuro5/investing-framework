@@ -1,8 +1,7 @@
 // The authoritative list of metric keys the app knows how to fetch from
-// FMP (PLANNING.md §1 Phase 2). Both GroupRule.metricKey and manually
-// entered MetricValue.metricKey are validated against this at
-// creation/update time, and it's the single source both the FMP provider
-// (which field maps to which endpoint) and the rule/metrics UIs (which
+// FMP (PLANNING.md §1 Phase 2). GroupRule.metricKey is validated against
+// this at creation/update time, and it's the single source both the FMP
+// provider (which field maps to which endpoint) and the rule UI (which
 // keys to offer) read from — replaces the old freeform-string /
 // UI-suggestion-only SUGGESTED_METRIC_KEYS.
 export const METRIC_KEYS = [

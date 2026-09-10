@@ -52,7 +52,7 @@ const seedPosition = async (ticker: string) => {
 
 const seedMetric = (instrumentId: string, metricKey: string, value: number) =>
   testDb.prisma.metricValue.create({
-    data: { instrumentId, metricKey, value, asOfDate: new Date("2026-07-31"), source: "manual" },
+    data: { instrumentId, metricKey, value, asOfDate: new Date("2026-07-31"), source: "api" },
   });
 
 const seedGroup = (name: string, priority: number) =>
